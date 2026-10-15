@@ -1,0 +1,66 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package recommendations.taskexecutions.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-harness/gen/go/recommendations/taskexecutions/v1;taskexecutionsv1";
+
+import "recommendations/taskexecutions/v1/enums.proto";
+import "google/protobuf/timestamp.proto";
+
+// ContentRef is an opaque pointer to a body held by the content store, used by the
+// payload columns so this hot, generic tracker table never inlines large write-once blobs.
+// Extensible: a content hash or version can be added without a migration.
+// (Defined locally — the generic task_executions table takes no dependency on any
+// feature package; the promptlibrary package carries its own identical ContentRef.)
+message ContentRef {
+  // key is the content store's opaque identifier for the referenced body.
+  string key = 1;
+}
+
+// ── Table model: task_executions ────────────────────────────────────────────
+//
+// Mirrors the task_executions table 1:1 per ADR-0020. Generic audit table for
+// scheduled / manually-triggered tasks, discriminated by task_type. Reusable
+// across features — any non-connector task writes to this table.
+message TaskExecution {
+  string id = 1;
+  string organization_id = 2;
+
+  // Discriminator: which task type produced this row. Determines the shape of the
+  // input/output payloads held by the content store.
+  TaskType task_type = 3;
+
+  TaskExecutionStatus status = 4;
+  TaskTriggerType trigger_type = 5;
+  // person_id of the admin who triggered the execution; empty for scheduled.
+  string triggered_by = 6;
+
+  // ContentRef to the run input in the content store (write-once, never
+  // field-queried). For TASK_TYPE_DERIVE_ORG_ARTIFACTS the body is a
+  // protojson-encoded recommendations.promptlibrary.v1.AggregatedContext.
+  ContentRef input_payload = 7;
+
+  // ContentRef to the raw task output in the content store (for
+  // DERIVE_ORG_ARTIFACTS, the raw LLM response). Empty until the task produces
+  // output. Failures are recorded in error_message, not here.
+  ContentRef output_payload = 8;
+
+  google.protobuf.Timestamp started_at = 9;
+  google.protobuf.Timestamp completed_at = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+  google.protobuf.Timestamp deleted_at = 13;
+
+  // Generic single-in-flight key: the stable identity a task type derives
+  // once-at-a-time per org, enforced by a partial-unique index on RUNNING rows.
+  // For TASK_TYPE_DERIVE_ORG_ARTIFACTS this is the project's vcs_repositories.id.
+  // Empty for task types that don't serialize on a sub-identity.
+  string dedup_key = 14;
+
+  // Terminal error for a FAILED run; empty for every other status (so a
+  // "non-empty" filter means exactly failures). A no-op SKIPPED run leaves it empty.
+  string error_message = 15;
+}

@@ -1,0 +1,568 @@
+{
+  "description": "Install-path conformance fixtures, generated from pkg/spec. install_path is relative to the scope root; absolute_path joins it to that root. ts_absolute_path marks a row where the TypeScript agent's root rule disagrees.",
+  "cases": [
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_SKILL",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".claude/skills/code-review/SKILL.md",
+      "absolute_path": "/home/dev/.claude/skills/code-review/SKILL.md"
+    },
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_SKILL",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".claude/skills/code-review/SKILL.md",
+      "absolute_path": "/work/acme/app/.claude/skills/code-review/SKILL.md"
+    },
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_HOOK",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".claude/hooks/code-review.sh",
+      "absolute_path": "/home/dev/.claude/hooks/code-review.sh",
+      "hook_command": "\"$HOME\"/.claude/hooks/code-review.sh",
+      "hook_command_target": "/home/dev/.claude/hooks/code-review.sh"
+    },
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_HOOK",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".claude/hooks/code-review.sh",
+      "absolute_path": "/work/acme/app/.claude/hooks/code-review.sh",
+      "hook_command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/code-review.sh",
+      "hook_command_target": "/work/acme/app/.claude/hooks/code-review.sh"
+    },
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_AGENT",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".claude/agents/code-review.md",
+      "absolute_path": "/home/dev/.claude/agents/code-review.md"
+    },
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_AGENT",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".claude/agents/code-review.md",
+      "absolute_path": "/work/acme/app/.claude/agents/code-review.md"
+    },
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_RULE",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".claude/rules/code-review.md",
+      "absolute_path": "/home/dev/.claude/rules/code-review.md"
+    },
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_RULE",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".claude/rules/code-review.md",
+      "absolute_path": "/work/acme/app/.claude/rules/code-review.md"
+    },
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_CLAUDE_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".claude/CLAUDE.md",
+      "absolute_path": "/home/dev/.claude/CLAUDE.md"
+    },
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_CLAUDE_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": "CLAUDE.md",
+      "absolute_path": "/work/acme/app/CLAUDE.md"
+    },
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_AGENTS_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "error": "ide_not_supported"
+    },
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_AGENTS_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": "AGENTS.md",
+      "absolute_path": "/work/acme/app/AGENTS.md"
+    },
+    {
+      "ide": "IDE_TYPE_CURSOR",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_SKILL",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".cursor/skills/code-review/SKILL.md",
+      "absolute_path": "/home/dev/.cursor/skills/code-review/SKILL.md"
+    },
+    {
+      "ide": "IDE_TYPE_CURSOR",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_SKILL",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".cursor/skills/code-review/SKILL.md",
+      "absolute_path": "/work/acme/app/.cursor/skills/code-review/SKILL.md"
+    },
+    {
+      "ide": "IDE_TYPE_CURSOR",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_HOOK",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".cursor/hooks/code-review.sh",
+      "absolute_path": "/home/dev/.cursor/hooks/code-review.sh",
+      "hook_command": "\"$HOME\"/.cursor/hooks/code-review.sh",
+      "hook_command_target": "/home/dev/.cursor/hooks/code-review.sh"
+    },
+    {
+      "ide": "IDE_TYPE_CURSOR",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_HOOK",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".cursor/hooks/code-review.sh",
+      "absolute_path": "/work/acme/app/.cursor/hooks/code-review.sh",
+      "hook_command": ".cursor/hooks/code-review.sh",
+      "hook_command_target": "/work/acme/app/.cursor/hooks/code-review.sh"
+    },
+    {
+      "ide": "IDE_TYPE_CURSOR",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_AGENT",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".cursor/agents/code-review.md",
+      "absolute_path": "/home/dev/.cursor/agents/code-review.md"
+    },
+    {
+      "ide": "IDE_TYPE_CURSOR",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_AGENT",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".cursor/agents/code-review.md",
+      "absolute_path": "/work/acme/app/.cursor/agents/code-review.md"
+    },
+    {
+      "ide": "IDE_TYPE_CURSOR",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_RULE",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".cursor/rules/code-review.mdc",
+      "absolute_path": "/home/dev/.cursor/rules/code-review.mdc"
+    },
+    {
+      "ide": "IDE_TYPE_CURSOR",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_RULE",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".cursor/rules/code-review.mdc",
+      "absolute_path": "/work/acme/app/.cursor/rules/code-review.mdc"
+    },
+    {
+      "ide": "IDE_TYPE_CURSOR",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_CLAUDE_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".claude/CLAUDE.md",
+      "absolute_path": "/home/dev/.claude/CLAUDE.md"
+    },
+    {
+      "ide": "IDE_TYPE_CURSOR",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_CLAUDE_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": "CLAUDE.md",
+      "absolute_path": "/work/acme/app/CLAUDE.md"
+    },
+    {
+      "ide": "IDE_TYPE_CURSOR",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_AGENTS_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "error": "ide_not_supported"
+    },
+    {
+      "ide": "IDE_TYPE_CURSOR",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_AGENTS_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": "AGENTS.md",
+      "absolute_path": "/work/acme/app/AGENTS.md"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_SKILL",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".agents/skills/code-review/SKILL.md",
+      "absolute_path": "/home/dev/.agents/skills/code-review/SKILL.md"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_SKILL",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".agents/skills/code-review/SKILL.md",
+      "absolute_path": "/work/acme/app/.agents/skills/code-review/SKILL.md"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_HOOK",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": "hooks/code-review.sh",
+      "absolute_path": "/home/dev/.codex/hooks/code-review.sh",
+      "hook_command": "\"${CODEX_HOME:-$HOME/.codex}\"/hooks/code-review.sh",
+      "hook_command_target": "/home/dev/.codex/hooks/code-review.sh"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_HOOK",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".codex/hooks/code-review.sh",
+      "absolute_path": "/work/acme/app/.codex/hooks/code-review.sh",
+      "hook_command": "\"$(git rev-parse --show-toplevel)\"/.codex/hooks/code-review.sh",
+      "hook_command_target": "/work/acme/app/.codex/hooks/code-review.sh"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_AGENT",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "error": "ide_not_supported"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_AGENT",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".codex/agents/code-review.md",
+      "absolute_path": "/work/acme/app/.codex/agents/code-review.md"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_RULE",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "error": "ide_not_supported"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_RULE",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".codex/rules/code-review.md",
+      "absolute_path": "/work/acme/app/.codex/rules/code-review.md"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_CLAUDE_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".claude/CLAUDE.md",
+      "absolute_path": "/home/dev/.claude/CLAUDE.md",
+      "ts_absolute_path": "/home/dev/.codex/.claude/CLAUDE.md"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_CLAUDE_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": "CLAUDE.md",
+      "absolute_path": "/work/acme/app/CLAUDE.md"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_AGENTS_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "error": "ide_not_supported"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_AGENTS_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": "AGENTS.md",
+      "absolute_path": "/work/acme/app/AGENTS.md"
+    },
+    {
+      "ide": "IDE_TYPE_KIRO",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_SKILL",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".kiro/skills/code-review/SKILL.md",
+      "absolute_path": "/home/dev/.kiro/skills/code-review/SKILL.md"
+    },
+    {
+      "ide": "IDE_TYPE_KIRO",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_SKILL",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".kiro/skills/code-review/SKILL.md",
+      "absolute_path": "/work/acme/app/.kiro/skills/code-review/SKILL.md"
+    },
+    {
+      "ide": "IDE_TYPE_KIRO",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_HOOK",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "error": "ide_not_supported"
+    },
+    {
+      "ide": "IDE_TYPE_KIRO",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_HOOK",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".kiro/hooks/code-review.kiro.hook",
+      "absolute_path": "/work/acme/app/.kiro/hooks/code-review.kiro.hook"
+    },
+    {
+      "ide": "IDE_TYPE_KIRO",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_AGENT",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".kiro/agents/code-review.md",
+      "absolute_path": "/home/dev/.kiro/agents/code-review.md"
+    },
+    {
+      "ide": "IDE_TYPE_KIRO",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_AGENT",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".kiro/agents/code-review.md",
+      "absolute_path": "/work/acme/app/.kiro/agents/code-review.md"
+    },
+    {
+      "ide": "IDE_TYPE_KIRO",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_RULE",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".kiro/steering/code-review.md",
+      "absolute_path": "/home/dev/.kiro/steering/code-review.md"
+    },
+    {
+      "ide": "IDE_TYPE_KIRO",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_RULE",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": ".kiro/steering/code-review.md",
+      "absolute_path": "/work/acme/app/.kiro/steering/code-review.md"
+    },
+    {
+      "ide": "IDE_TYPE_KIRO",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_CLAUDE_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "install_path": ".claude/CLAUDE.md",
+      "absolute_path": "/home/dev/.claude/CLAUDE.md"
+    },
+    {
+      "ide": "IDE_TYPE_KIRO",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_CLAUDE_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": "CLAUDE.md",
+      "absolute_path": "/work/acme/app/CLAUDE.md"
+    },
+    {
+      "ide": "IDE_TYPE_KIRO",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_AGENTS_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "error": "ide_not_supported"
+    },
+    {
+      "ide": "IDE_TYPE_KIRO",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_AGENTS_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "install_path": "AGENTS.md",
+      "absolute_path": "/work/acme/app/AGENTS.md"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_SKILL",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "codex_home": "/opt/codex-home",
+      "install_path": ".agents/skills/code-review/SKILL.md",
+      "absolute_path": "/home/dev/.agents/skills/code-review/SKILL.md"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_HOOK",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "codex_home": "/opt/codex-home",
+      "install_path": "hooks/code-review.sh",
+      "absolute_path": "/opt/codex-home/hooks/code-review.sh",
+      "hook_command": "\"${CODEX_HOME:-$HOME/.codex}\"/hooks/code-review.sh",
+      "hook_command_target": "/opt/codex-home/hooks/code-review.sh"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_AGENT",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "codex_home": "/opt/codex-home",
+      "error": "ide_not_supported"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_RULE",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "codex_home": "/opt/codex-home",
+      "error": "ide_not_supported"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_CLAUDE_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "codex_home": "/opt/codex-home",
+      "install_path": ".claude/CLAUDE.md",
+      "absolute_path": "/home/dev/.claude/CLAUDE.md",
+      "ts_absolute_path": "/opt/codex-home/.claude/CLAUDE.md"
+    },
+    {
+      "ide": "IDE_TYPE_CODEX",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_AGENTS_MD",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "codex_home": "/opt/codex-home",
+      "error": "ide_not_supported"
+    },
+    {
+      "ide": "IDE_TYPE_UNSPECIFIED",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_SKILL",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "error": "ide_not_supported"
+    },
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_UNSPECIFIED",
+      "type": "ARTIFACT_TYPE_SKILL",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "error": "scope_not_supported"
+    },
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_UNSPECIFIED",
+      "slug": "code-review",
+      "home": "/home/dev",
+      "error": "type_not_enforceable"
+    },
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_USER_GLOBAL",
+      "type": "ARTIFACT_TYPE_SKILL",
+      "slug": "../escape",
+      "home": "/home/dev",
+      "error": "invalid_slug"
+    },
+    {
+      "ide": "IDE_TYPE_CLAUDE_CODE",
+      "scope": "ARTIFACT_SCOPE_REPO_LOCAL",
+      "type": "ARTIFACT_TYPE_HOOK",
+      "slug": "Upper",
+      "home": "/home/dev",
+      "repo_root": "/work/acme/app",
+      "error": "invalid_slug"
+    }
+  ]
+}

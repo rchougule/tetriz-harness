@@ -1,0 +1,647 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+// Messages for the recommendations engine's artifact bodies, evidence, and the
+// aggregated derive input. Three are bound to prompt_library JSONB columns (ContentRef →
+// artifact_content, EvidenceProjection → evidence, AdminInteraction →
+// admin_interaction); the rest are serialized as protojson and held by the content
+// store, never a DB column.
+syntax = "proto3";
+
+package recommendations.promptlibrary.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-harness/gen/go/recommendations/promptlibrary/v1;promptlibraryv1";
+
+import "recommendations/common/v1/date_range.proto";
+import "recommendations/common/v1/ide_type.proto";
+import "recommendations/promptlibrary/v1/enums.proto";
+import "google/protobuf/timestamp.proto";
+
+// ── artifact bodies (held by the content store, referenced by prompt_library.artifact_content) ──
+//
+// The full artifact body lives in the content store; the artifact_content column
+// holds only a ContentRef to it.
+
+// ArtifactContent is the full body of an artifact, held by the content store
+// (prompt_library.artifact_content holds only a ContentRef to it). It holds the body
+// text once plus type-specific structured extras.
+message ArtifactContent {
+  // Original LLM-generated body, preserved as baseline for Revert.
+  string original = 1;
+  // Current body (may equal original, or be the admin-edited version). The body
+  // text lives here only — the type-specific payload below carries extras, never a
+  // second copy of the body.
+  string current = 2;
+  // Type-specific extras. Exactly one field is set, matching PromptLibraryItem.artifact_type.
+  oneof type_specific {
+    RuleContent rule = 3;
+    TemplateContent template = 4;
+    SkillContent skill = 5;
+    // hook is set when artifact_type is ARTIFACT_TYPE_HOOK.
+    HookContent hook = 7;
+    // agent is set when artifact_type is ARTIFACT_TYPE_AGENT.
+    AgentContent agent = 8;
+  }
+  // Repo file paths the body references, returned by the LLM as structured data
+  // (not parsed from prose). The quality gate validates each against the project's
+  // RepoTree; persisted so the grounding survives validation and the deferred UI
+  // can render/link them. Empty when the body cites no path.
+  repeated string cited_paths = 6;
+}
+
+// ContentRef is an opaque pointer to a body held by the content store, used to hold
+// large or write-once payloads out of line instead of inlining them in a JSONB column.
+// Extensible: a content hash or version can be added without a migration.
+message ContentRef {
+  // key is the content store's opaque identifier for the referenced body.
+  string key = 1;
+}
+
+// RuleContent holds the fields specific to ARTIFACT_TYPE_RULE artifacts.
+message RuleContent {
+  // Anti-pattern example drawn from the org's own session data.
+  string bad_example = 1;
+  // Corresponding good-pattern example for the rule body.
+  string good_example = 2;
+  // Taxonomy issue slugs (from the session quality scorer) that this rule addresses.
+  repeated string addresses_issues = 3;
+  // target_file is the precise repo-relative destination for this rule (e.g.
+  // "CLAUDE.md", "client/CLAUDE.md", "AGENTS.md", ".cursor/rules/<slug>.mdc") — the
+  // exact file to edit or create. Empty when no rules-file target resolved.
+  string target_file = 4;
+  // target_placement says whether target_file is appended to (an existing rules
+  // file) or created as a new file imported from reference_in_file.
+  ArtifactTargetPlacement target_placement = 5;
+  // reference_in_file is the existing rules file that should import/link the new
+  // target_file; set only when target_placement is NEW_REFERENCED_FILE, else empty.
+  string reference_in_file = 6;
+  // target_tool is the AI coding tool target_file belongs to; best-effort, for a
+  // vendor label/icon only — target_file + target_placement are authoritative.
+  recommendations.common.v1.IdeType target_tool = 7;
+}
+
+// TemplateContent holds the structured extras for ARTIFACT_TYPE_TEMPLATE artifacts.
+// The template body itself lives in ArtifactContent.current, not here.
+message TemplateContent {
+  // The quality dimension this template primarily addresses (e.g., "completeness").
+  string weakest_dimension = 1;
+  // Org's average quality score for this task type (0-10).
+  float org_score = 2;
+  // Number of sessions this template was derived from.
+  int32 session_count = 3;
+  // trigger_keywords are the LLM-derived prompt signals that mark a submitted
+  // prompt as belonging to this template's task type; the template-hook
+  // dispatcher scores a prompt against them to pick the best-matching template.
+  // Nullable by contract — a missing list never fails a derivation batch and
+  // falls back to a static per-task-type keyword map.
+  repeated string trigger_keywords = 4;
+}
+
+// SkillContent holds the structured extras for ARTIFACT_TYPE_SKILL artifacts.
+// The skill definition body itself lives in ArtifactContent.current, not here.
+message SkillContent {
+  // Target environments where the skill applies (e.g., "claude-code", "cursor").
+  repeated string deployment_targets = 1;
+  // Brief note on the review-theme cluster or pattern that motivated the skill.
+  string derived_from = 2;
+  // target_file is the precise repo-relative destination for this skill (e.g.
+  // ".claude/skills/<slug>.md", ".cursor/rules/<slug>.mdc") — the exact file to
+  // create or edit. Empty when no target resolved.
+  string target_file = 3;
+  // target_placement says whether target_file is appended to an existing file or
+  // created as a new file imported from reference_in_file.
+  ArtifactTargetPlacement target_placement = 4;
+  // reference_in_file is the existing file that imports/links the new target_file;
+  // set only when target_placement is NEW_REFERENCED_FILE, else empty.
+  string reference_in_file = 5;
+  // target_tool is the AI coding tool target_file belongs to; best-effort, for a
+  // vendor label/icon only.
+  recommendations.common.v1.IdeType target_tool = 6;
+}
+
+// HookContent holds the structured extras for ARTIFACT_TYPE_HOOK artifacts. The
+// copy-pasteable JSON snippet itself lives in ArtifactContent.current, not here;
+// these fields let the UI render the hook and its deploy target. reference_in_file
+// is intentionally omitted — a hook is copy/merged into a settings file, never
+// referenced from a central file.
+message HookContent {
+  // Lifecycle event the hook fires on (e.g. "PostToolUse"). Free string — per-tool
+  // event vocabularies differ, so this is not a shared enum.
+  string event = 1;
+  // Tool/command matcher the hook fires on (e.g. an edit-tool glob); may be empty
+  // when the event needs no matcher.
+  string matcher = 2;
+  // Best-effort command the hook runs; the repo tree is paths-only, so this is
+  // admin-edited rather than extracted from build files.
+  string command = 3;
+  // target_file is the tool's hook-config path the snippet merges into (e.g.
+  // ".claude/settings.json"). Empty when no tool/config target resolved.
+  string target_file = 4;
+  // target_placement is COPY_MERGE for a hook (see ArtifactTargetPlacement).
+  ArtifactTargetPlacement target_placement = 5;
+  // target_tool is the detected AI coding tool this hook's format targets.
+  recommendations.common.v1.IdeType target_tool = 6;
+}
+
+// AgentContent holds the frontmatter extras for ARTIFACT_TYPE_AGENT artifacts. The
+// agent-definition body itself lives in ArtifactContent.current, not here.
+// reference_in_file is intentionally omitted — an agent file is auto-discovered by
+// the tool, not referenced from a central file.
+message AgentContent {
+  // agent_name is the delegated-to specialist name (e.g. "code-reviewer").
+  string agent_name = 1;
+  // description is the when-to-delegate summary the main agent routes on.
+  string description = 2;
+  // tools is the agent's tool scope (e.g. read-only for a reviewer). Empty means
+  // the tool's default scope.
+  repeated string tools = 3;
+  // model is the model tier the agent runs on (e.g. a higher tier for a reviewer);
+  // empty means the tool default.
+  string model = 4;
+  // target_file is the per-tool agent-definition path to create (e.g.
+  // ".claude/agents/<slug>.md"). Empty when no tool target resolved.
+  string target_file = 5;
+  // target_placement is NEW_REFERENCED_FILE for agents — a new standalone file.
+  ArtifactTargetPlacement target_placement = 6;
+  // target_tool is the detected AI coding tool this agent's format targets.
+  recommendations.common.v1.IdeType target_tool = 7;
+}
+
+// ── artifact evidence (full object in the content store; the inline card is EvidenceProjection) ──
+
+// ArtifactEvidence is the full evidence object, held by the content store and
+// referenced from the inline EvidenceProjection.ref. Holds the org-specific
+// data points that justify the artifact; fetched only on the detail view.
+message ArtifactEvidence {
+  repeated TaxonomyIssueEvidence taxonomy_issues = 1;
+  repeated ReviewThemeEvidence review_themes = 2;
+  int32 total_sessions = 3;
+  int32 affected_sessions = 4;
+  // Percentage-point gap between low-scoring and high-scoring session buckets.
+  float high_low_gap_pp = 5;
+  PRCorrelation pr_correlation = 6;
+  // Short free-text label for the primary evidence source (e.g., "session+vcs").
+  string source = 7;
+  // Human-readable one-line summary surfaced under each artifact in the UI.
+  string summary = 8;
+}
+
+message TaxonomyIssueEvidence {
+  string slug = 1;
+  float high_session_pct = 2;
+  float low_session_pct = 3;
+  float gap_pp = 4;
+  int32 sessions_affected = 5;
+  // Number of detected incidents of this issue, for slugs counted as discrete
+  // events rather than as a share of sessions — i.e. security slugs sourced from
+  // security_flags (api-key-leak / pii-injection / db-credential-leak), which
+  // carry no session pct/gap. Zero for session-distribution (quality) slugs, whose
+  // signal is the pct/gap fields above.
+  int32 incident_count = 6;
+}
+
+message ReviewThemeEvidence {
+  string theme = 1;
+  int32 count = 2;
+  // Short quoted snippets from classified review comments (max 1-2 per theme).
+  repeated string examples = 3;
+}
+
+// PRCorrelation is the two-sided session-quality to merge-velocity signal
+//. It is ORG-grain: the high/low cohorts are scored over the whole
+// seated org and their merge hours pool every repo's PRs in the window, so the
+// same values attach to all of an org's project artifacts (it joins the org-grain
+// evidence block, not project-grain grounding). The person_id to
+// platform_identity_id mapping is resolved through the platform identity map.
+message PRCorrelation {
+  float high_sessions_avg_merge_hrs = 1;
+  float low_sessions_avg_merge_hrs = 2;
+  float delta_pct = 3;
+}
+
+// ── prompt_library.evidence JSONB column (inline card projection) ─────────
+//
+// EvidenceProjection is the small, hard-bounded projection stored inline in
+// prompt_library.evidence so the list/card view renders with zero content-store reads. The
+// full ArtifactEvidence (taxonomy_issues[], review_themes[]+examples[]) lives in
+// the content store and is fetched via ref only on the detail view.
+message EvidenceProjection {
+  // Capped one-line summary rendered under each artifact card (~500 chars).
+  string summary = 1;
+  // Primary taxonomy issue slug, shown as a badge.
+  string top_issue = 2;
+  // Total sessions in the org-pooled window the evidence was computed over.
+  int32 total_sessions = 3;
+  // Sessions exhibiting the primary issue this artifact addresses.
+  int32 affected_sessions = 4;
+  // Percentage-point gap between low-scoring and high-scoring session buckets.
+  float high_low_gap_pp = 5;
+  // PR merge-time delta percentage; zero/unset when PR correlation was not computed.
+  float pr_delta_pct = 6;
+  // Short free-text label for the primary evidence source (e.g., "session+vcs").
+  string source = 7;
+  // Reference to the full ArtifactEvidence in the content store, fetched only on
+  // the detail view.
+  ContentRef ref = 8;
+  // Detected-incident count for the primary issue, when that issue is event-counted
+  // rather than session-distribution based — i.e. a security rule (top_issue is a
+  // security slug). Zero for quality-issue cards, which carry affected_sessions /
+  // total_sessions instead. Lets the card show "N incidents" without implying a
+  // session ratio against total_sessions.
+  int32 incident_count = 9;
+  // Share of low-scoring-bucket sessions exhibiting the primary issue (top_issue), as a
+  // percentage. Mirrors the primary TaxonomyIssueEvidence.low_session_pct so the rule card
+  // can render "X% low vs Y% high" inline without a content-store fetch. Zero for security/incident
+  // cards (no session-distribution signal).
+  float low_pct = 10;
+  // Share of high-scoring-bucket sessions exhibiting the primary issue (top_issue), as a
+  // percentage. Mirrors the primary TaxonomyIssueEvidence.high_session_pct; the inline
+  // companion to low_pct (high_low_gap_pp is their difference). Zero for security cards.
+  float high_pct = 11;
+  // reference_point is a DETECTED finding's reference for the recommendation — e.g.
+  // the intent class's normal band a behavioral deviation was judged against, or the
+  // offending rule-ID/path detail. Empty for a derived (non-detector) row.
+  string reference_point = 12;
+  // intent_class is the LLM-classified intent of the subject skill/subagent/command,
+  // set only on an Instruction-Intent behavioral finding; empty otherwise.
+  string intent_class = 13;
+  // auto_fixable is true when a DETECTED finding carries a suggested edited body (a
+  // modification finding), false for an advisory finding; unset for non-detector rows.
+  bool auto_fixable = 14;
+  // recommended_action is the plain-English remedy a user should take for a DETECTED
+  // finding — static per-family copy (finding_copy.go). Empty for a derived (non-detector) row.
+  string recommended_action = 15;
+  // advisory is true for a DETECTED finding that carries no suggested fix (evidence-only,
+  // Dismiss-only in the UI); false when a grounded fix is attached (Apply-able). Set at
+  // persist alongside auto_fixable. False for a derived (non-detector) row.
+  bool advisory = 16;
+  // source_path is the committed repo-relative path of the artifact a per-file DETECTED finding is
+  // about (the rule/skill/command file, e.g. ".claude/rules/foo.md") — the artifact IDENTITY the UI
+  // shows as the finding's row label, distinct from reference_point (the specific offending detail).
+  // Empty for an ORG-relational finding (MCP sprawl, coverage-gap) and for a derived (non-detector) row.
+  string source_path = 17;
+  // source_name is the artifact's canonical name/slug (e.g. "deploy" for a skill at
+  // .claude/skills/deploy/SKILL.md, "reviewer" for an agent). For a SKILL/AGENT/COMMAND the UI shows
+  // this (the slug) as the row identity rather than source_path, whose basename is a generic
+  // "SKILL.md"; a RULE/CLAUDE_MD keeps source_path (its filename is the descriptive identity).
+  // Empty for an ORG-relational finding and a derived (non-detector) row.
+  string source_name = 18;
+}
+
+// ── AggregatedContext (the run input for a DERIVE_ORG_ARTIFACTS task execution) ──
+//
+// Serialized as protojson and written to the content store (the run's input); the
+// task_executions.input_payload column holds only a ContentRef to it — the object is
+// write-once and large (it carries the repo trees), so it is never inlined.
+// Non-tree aggregates are bounded by fixed taxonomy and review-theme sets with a
+// per-project list and 1-2 examples per theme; the repo_trees dominate the size.
+
+message AggregatedContext {
+  string org_id = 1;
+  // date_range is the window used to aggregate context for artifact derivation.
+  recommendations.common.v1.DateRange date_range = 2;
+  SessionSummary session_summary = 3;
+  repeated IssueGap high_vs_low_gap = 4;
+  repeated ProjectSummary per_project = 5;
+  repeated TaskTypeSummary per_task_type = 6;
+  repeated ReviewThemeSummary review_themes = 7;
+  repeated IDESummary ide_breakdown = 8;
+  SecuritySummary security_incidents = 9;
+  AdminFeedback admin_feedback = 10;
+  // Complete per-repo file-path trees for the in-scope project(s), paths only.
+  // The derivation LLM uses these to cite real file paths and detect existing
+  // rule-file locations.
+  repeated RepoTree repo_trees = 11;
+
+  // subagent_usage is the grassroots agent-demand rollup (how much the org already
+  // delegates, by archetype) — a primary demand signal for agents.
+  SubagentUsageSummary subagent_usage = 12;
+  // friction is the recurring-friction rollup — a hook-demand signal (automate the
+  // repeated pain).
+  FrictionSummary friction = 13;
+  // languages present in the org's work — stack grounding for hook commands and
+  // agent tool scope.
+  repeated string languages = 14;
+  // models_used across the org's sessions — the default model tier for a derived agent.
+  repeated string models_used = 15;
+  // mcp_servers the org uses — agent tool-scope grounding.
+  repeated string mcp_servers = 16;
+  // pr_signals are the per-repo PR-outcome aggregates (review latency, size, per-module
+  // churn) that drive code-reviewer / domain-specialist agents and PR-size hooks.
+  repeated PRSignal pr_signals = 17;
+  // bug_signal is the repo-attributed bug rollup (volume, priority) that drives a
+  // debugger agent.
+  BugSignal bug_signal = 18;
+  // resolved_target_tool is the single dominant AI tool resolved once up front
+  // (ide_breakdown primary, RepoTree checked-in tool-dirs as override) so the
+  // quality gate and target resolver read one authoritative tool instead of
+  // guessing from the LLM-authored target_file. UNSPECIFIED when no tool resolves
+  // (the gate then hides tool-targeted hooks/agents).
+  recommendations.common.v1.IdeType resolved_target_tool = 19;
+}
+
+// RepoKind is one repository's deterministic shape, carried so domain-fit is matched on a
+// decided value rather than on the model's reading of directory names.
+message RepoKind {
+  // repo_full_name is the vcs_repositories full_name this describes, matching the
+  // repo_trees entry it was derived from.
+  string repo_full_name = 1;
+  // shape is the repo's decided kind; UNSPECIFIED means undecided, not a default kind.
+  RepoShape shape = 2;
+  // shape_evidence names what decided the shape — the file families found and their share
+  // of the tree (e.g. "terraform 62%", "go 4%"). Present so a reader can tell a decided
+  // shape from a coincidence, and so a wrong shape is diagnosable without the tree.
+  repeated string shape_evidence = 3;
+}
+
+// SubagentUsageSummary rolls up how much the org delegates to subagents and to which
+// archetypes — the grassroots agent-demand signal.
+message SubagentUsageSummary {
+  // total_delegations is the count of subagent delegations over the window.
+  int32 total_delegations = 1;
+  // archetype_counts maps a subagent archetype (e.g. "debugger") to its delegation
+  // count — evidence the org already spawns that kind ad hoc.
+  map<string, int32> archetype_counts = 2;
+}
+
+// FrictionSummary rolls up recurring friction events — a hook-demand signal (a
+// repeated friction a deterministic hook could remove).
+message FrictionSummary {
+  // friction_counts maps a friction-event label to its occurrence count over the window.
+  map<string, int32> friction_counts = 1;
+}
+
+// PRSignal is one repo/module's PR-outcome aggregate over the window, driving the
+// code-reviewer / domain-specialist agents and the PR-size / commit-convention hooks.
+message PRSignal {
+  // module is the top-level directory the churn concentrates in; empty for a
+  // repo-level (non-module) signal.
+  string module = 1;
+  // avg_review_hrs is the mean opened/ready-to-first-review latency in hours.
+  float avg_review_hrs = 2;
+  // iterations is the mean review loops per PR. double, not int32 — the source
+  // aggregate is a fractional mean and int32 would truncate the signal.
+  double iterations = 3;
+  // churn_lines is the summed changed lines for module over the window.
+  int32 churn_lines = 4;
+  // large_pr_pct is the percentage of PRs above the size threshold — drives the
+  // PR-size hook. double, not int32 — the percentage is fractional.
+  double large_pr_pct = 5;
+  // merge_enforcement is the repo's merge-enforcement policy label — drives the
+  // commit-convention hook. Free string (the label vocabulary is not shared here).
+  string merge_enforcement = 6;
+}
+
+// BugSignal is the repo-attributed bug rollup driving a debugger agent.
+// Repo-attributed, never org-wide.
+message BugSignal {
+  // bug_count is the number of bug-type issues attributed to the repo over the window.
+  int32 bug_count = 1;
+  // high_priority is the count among bug_count marked high priority.
+  int32 high_priority = 2;
+}
+
+message SessionSummary {
+  int32 total_sessions = 1;
+  // Bucket counts keyed by label (e.g., "low", "mid", "high").
+  map<string, int32> quality_distribution = 2;
+  // Average dimension score keyed by dimension name (e.g., "completeness" -> 5.46).
+  map<string, float> dimension_averages = 3;
+}
+
+message IssueGap {
+  string issue_slug = 1;
+  float high_pct = 2;
+  float low_pct = 3;
+  float gap_pp = 4;
+  // Raw two-proportion z-test p-value for this issue's high-vs-low gap.
+  float p_value = 5;
+  // Benjamini-Hochberg FDR-corrected q-value across the issue set; q < 0.10 is a
+  // primary recommendation.
+  float fdr_q = 6;
+  // True when the gap clears raw p < 0.05 but fails FDR (q >= 0.10) — surfaced as
+  // weaker evidence rather than suppressed.
+  bool low_confidence = 7;
+}
+
+message ProjectSummary {
+  string project = 1;
+  int32 sessions = 2;
+  float avg_overall = 3;
+  string weakest_dim = 4;
+  float weakest_dim_avg = 5;
+  repeated string top_issues = 6;
+  // Canonical vcs_repositories full_name this project maps to; empty when no repo
+  // matched. Used to attach the repo tree and per-repo themes to the project.
+  string repo_full_name = 7;
+}
+
+// TaskTypeSummary is one bucket of the org-grain per-task-type breakdown over the
+// derivation window.
+message TaskTypeSummary {
+  // Task-type label for this bucket; an unset/empty label folds to "TASK_TYPE_UNSPECIFIED".
+  string task_type = 1;
+  // Number of analyzed sessions in this bucket over the window.
+  int32 sessions = 2;
+  // Mean overallScore across the bucket's sessions; 0 when none are scored.
+  float avg = 3;
+  // camelCase quality-dimension key with the lowest mean (e.g. "efficiency"),
+  // matching SessionSummary.dimension_averages keys. Empty when all dimension means
+  // are equal — no distinguishable weakness, including the no-scored-data case.
+  string weakest_dim = 4;
+  // Mean score of weakest_dim; 0 when weakest_dim is empty.
+  float weakest_val = 5;
+}
+
+message ReviewThemeSummary {
+  string theme = 1;
+  int32 count = 2;
+  repeated string examples = 3;
+}
+
+// IDESummary is one bucket of the org-grain per-IDE breakdown over the derivation
+// window.
+message IDESummary {
+  // IDE-type label for this bucket; an unset/empty label folds to "IDE_TYPE_UNSPECIFIED".
+  string ide = 1;
+  // Number of analyzed sessions in this bucket over the window.
+  int32 sessions = 2;
+  // Mean overallScore across the bucket's sessions; 0 when none are scored.
+  float avg = 3;
+}
+
+message SecuritySummary {
+  int32 api_key_leak = 1;
+  int32 pii_injection = 2;
+  int32 db_credential_leak = 3;
+}
+
+message AdminFeedback {
+  // DEPRECATED — superseded by dismissed_rule_slugs. Dedup keys on the stable slug,
+  // not the descriptive title; kept (not removed) per the FILE breaking policy and
+  // no longer populated.
+  repeated string dismissed_rule_titles = 1 [deprecated = true];
+  // Edited artifacts whose current text should be used as baseline.
+  repeated EditedArtifactFeedback edited_artifacts = 2;
+  // DEPRECATED — superseded by pinned_rule_slugs. Kept (not removed) per the FILE
+  // breaking policy and no longer populated.
+  repeated string pinned_rule_titles = 3 [deprecated = true];
+  // Slugs of artifacts the admin has dismissed; the engine excludes these from the
+  // next derivation (matched on the stable slug identity, not the descriptive title).
+  repeated string dismissed_rule_slugs = 4;
+  // Slugs of pinned artifacts to preserve across the supersede step.
+  repeated string pinned_rule_slugs = 5;
+}
+
+message EditedArtifactFeedback {
+  // DEPRECATED — the edited artifact is matched on slug now; populate slug. Kept
+  // (not removed) per the FILE breaking policy and no longer populated.
+  string title = 1 [deprecated = true];
+  // The admin-edited artifact body to use as the baseline for the next derivation.
+  string edited_body = 2;
+  // Stable slug of the edited artifact (the identity the next derivation matches on).
+  string slug = 3;
+}
+
+// RepoTree is one repo's complete file-path tree, paths only (no file content),
+// attached to AggregatedContext for a project run. directory_structure is the
+// directory-grouped, lossless encoding (generated/binary stripped); the LLM cites
+// real paths from it and detects existing rule-file locations.
+message RepoTree {
+  // Canonical vcs_repositories full_name (e.g., "owner/repo").
+  string repo_full_name = 1;
+  // Dominant language for the repo (e.g., "Go").
+  string primary_language = 2;
+  // Other languages present, by signal strength.
+  repeated string language_hints = 3;
+  // Number of source files in the tree after stripping generated/binary.
+  int32 file_count = 4;
+  // Detected AI artifact-config paths present in the repo — both rule files
+  // ("CLAUDE.md", "AGENTS.md", ".cursorrules", ".cursor/rules/") AND
+  // skill/command/prompt files (".claude/skills/", ".claude/commands/",
+  // ".github/prompts/"). Consumers split by destination kind; the name is kept for
+  // wire compatibility.
+  repeated string rule_files = 5;
+  // Directory-grouped, paths-only, lossless encoding of the file tree (each dir
+  // prefix written once). This is what the LLM reads to cite paths.
+  string directory_structure = 6;
+  // When the underlying repo tree was last refreshed by the connector.
+  google.protobuf.Timestamp tree_fetched_at = 7;
+  // True when the encoding was cut at the per-repo/per-call token cap (or the
+  // vendor truncated the tree at fetch) — the grounding is incomplete.
+  bool truncated = 8;
+}
+
+// ── prompt_library.admin_interaction JSONB column ─────────────────────────
+//
+// AdminInteraction bags the grow-over-time admin-action metadata into a
+// single typed JSONB so each new admin signal doesn't need a schema
+// migration. Only deployed_at is indexed (for the north-star metric); the rest
+// are read-only card data. If a future access pattern needs to filter by another,
+// promote it to a top-level column via migration.
+message AdminInteraction {
+  // Free-form reason captured when the admin dismisses the artifact.
+  // Populated only when client_status = ARTIFACT_CLIENT_STATUS_DISMISSED.
+  string dismiss_reason = 1;
+  // person_id of the last editor; empty if never edited.
+  string edited_by = 2;
+  google.protobuf.Timestamp edited_at = 3;
+  // Incremented on Copy (+1) and Mark as deployed (+1). Engagement signal,
+  // not deployment confirmation (that's a separate analytics event).
+  int32 adoption_count = 4;
+  // The LLM-derived body preserved when the admin first edits the artifact, so the
+  // UI can offer Revert. Empty until an edit happens.
+  string original_derived_text = 5;
+  // When the admin marked the artifact deployed to a repo; feeds the north-star
+  // artifact_deployed metric. Empty until marked. protojson emits this field as
+  // the camelCase key `deployedAt`.
+  google.protobuf.Timestamp deployed_at = 6;
+  // When the admin applied a DETECTED finding's suggested fix (enforced it via the
+  // Harness Control Plane). Stamped alongside client_status = ARTIFACT_CLIENT_STATUS_FIXED.
+  // Empty until fixed. protojson emits this field as the camelCase key `fixedAt`.
+  google.protobuf.Timestamp fixed_at = 7;
+}
+
+// ── Table model: prompt_library ──────────────────────────────────────────
+//
+// Mirrors the prompt_library table.
+// artifact_type / scope / client_status / surface_state are proto-enum-typed
+// (stored as the enum value-name string). artifact_content / evidence / admin_interaction
+// are typed JSONB (protojson). is_latest is a plain BOOL the engine
+// supersedes per (organization_id, scope, scope_value).
+
+message PromptLibraryItem {
+  string id = 1;
+  string organization_id = 2;
+
+  // Classification.
+  ArtifactType artifact_type = 3;
+  ArtifactScope scope = 4;
+  // Immutable project identity when scope = ARTIFACT_SCOPE_PROJECT: the internal
+  // vcs_repositories.id (UUID), NOT the vendor full_name (which changes on rename/
+  // transfer). Empty for org scope. The human-readable name lives in the body/evidence.
+  string scope_value = 5;
+  // Template task-type (e.g., "debug", "test"); top-level for SQL filtering.
+  string task_type = 6;
+
+  // Content. The large body and full evidence live in the content store, off this hot
+  // serving table — artifact_content is a ContentRef to the full ArtifactContent,
+  // and evidence is the small inline EvidenceProjection (which itself carries a
+  // ContentRef to the full ArtifactEvidence). The card/list view renders from title +
+  // evidence with zero content-store reads.
+  string title = 7;
+  // Stable one-word identity of the artifact, distinct from the descriptive title:
+  // kebab-case for rules/templates (e.g. "go-error-wrapping"), "/"-prefixed for
+  // skills (e.g. "/spec-driven-dev"). The dedup/suppression key. Empty means no
+  // stable identity was assigned — such a row is never surfaced.
+  string slug = 20;
+  // ContentRef to the full ArtifactContent in the content store; read only on open/copy.
+  ContentRef artifact_content = 8;
+  // Inline evidence projection the card renders; carries a ref to the full evidence.
+  EvidenceProjection evidence = 9;
+
+  // Ordering.
+  int32 priority = 10;
+  // LLM confidence 0.0-1.0; clamped by the quality gate if out of range.
+  float confidence_score = 11;
+
+  // Lifecycle (server-driven). On a new derivation run that produces >=1 visible
+  // artifact, flipped to false on prior latest rows of the SAME
+  // (organization_id, scope, scope_value) only — never a sibling project's rows.
+  // Pinned rows survive on the read side via client_status.
+  bool is_latest = 12;
+  // Admin intent (client-driven). UNSPECIFIED = no admin action taken.
+  ArtifactClientStatus client_status = 13;
+  // Quality-gate outcome (server-driven). UNSPECIFIED = ungraded (fails safe to
+  // hidden); VISIBLE surfaces; HIDDEN_FAILED_EVAL is kept but never shown.
+  ArtifactSurfaceState surface_state = 19;
+
+  // Admin-interaction metadata (dismiss reason, last editor, adoption count,
+  // original derived text, deployed_at). Bagged as JSONB to avoid column
+  // proliferation; deployed_at is read via an expression index on the protojson
+  // key 'deployedAt' for the north-star metric — the rest are read-only card data.
+  AdminInteraction admin_interaction = 14;
+
+  // Provenance: FK to task_executions.id (the DERIVE_ORG_ARTIFACTS execution
+  // that produced this artifact). See recommendations.taskexecutions.v1
+  // for the TaskExecution model.
+  string task_execution_id = 15;
+
+  // Timestamps.
+  google.protobuf.Timestamp created_at = 16;
+  google.protobuf.Timestamp updated_at = 17;
+  google.protobuf.Timestamp deleted_at = 18;
+
+  // recommendation_source is the row's provenance (DERIVED / DETECTED), an explicit
+  // stored discriminator across the two flows. UNSPECIFIED on a row with no explicit
+  // provenance set (treated as not-surfaceable).
+  ArtifactRecommendationSource recommendation_source = 21;
+  // dimension is the lens a DETECTED finding comes from (Conflict / Security /
+  // Instruction-Intent); UNSPECIFIED for a non-detector row.
+  HarnessFindingDimension dimension = 22;
+  // harness_artifact_id is an app-level reference (no FK) to the committed
+  // harness_artifacts row a modification finding is about — used to fetch the baseline
+  // for the diff and to group findings under one artifact in the list. Empty for a
+  // repo-level or non-detector row.
+  string harness_artifact_id = 23;
+}

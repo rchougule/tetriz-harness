@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gofmt -l recommendations/)",
+      "Bash(go build ./recommendations/...)",
+      "Bash(go vet ./recommendations/...)",
+      "Bash(go test -race -count=1 ./recommendations/...)",
+      "Bash(recommendations/scripts/run-examples.sh)"
+    ]
+  }
+}

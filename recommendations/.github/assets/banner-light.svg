@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="200" viewBox="0 0 880 200" role="img" aria-label="recommendations: find problems in a committed AI-coding harness and recommend the artifacts it is missing">
+  <rect width="880" height="200" fill="#ffffff"/>
+  <rect x="0" y="0" width="6" height="200" fill="#2d6cdf"/>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  </style>
+  <text x="48" y="78" font-size="42" font-weight="700" fill="#14181f">recommendations</text>
+  <text x="48" y="116" font-size="19" fill="#3b4453">Find problems in a committed AI-coding harness,</text>
+  <text x="48" y="142" font-size="19" fill="#3b4453">and recommend the artifacts it is missing.</text>
+  <text x="48" y="176" font-size="14" fill="#6b7280" font-weight="600" letter-spacing="1">DETECTED · DERIVED</text>
+
+  <!-- harness file list: one flagged (DETECTED), one added (DERIVED) -->
+  <g transform="translate(624,44)">
+    <rect x="0" y="0" width="212" height="28" rx="5" fill="#eef1f6"/>
+    <text x="14" y="19" font-size="13" fill="#3b4453" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">.claude/rules/go.md</text>
+
+    <rect x="0" y="38" width="212" height="28" rx="5" fill="#fdecec"/>
+    <circle cx="196" cy="52" r="6" fill="#d93a3a"/>
+    <text x="14" y="57" font-size="13" fill="#8a2a2a" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">settings.json</text>
+
+    <rect x="0" y="76" width="212" height="28" rx="5" fill="#eef1f6"/>
+    <text x="14" y="95" font-size="13" fill="#3b4453" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">.claude/skills/test</text>
+
+    <rect x="0" y="114" width="212" height="28" rx="5" fill="#eaf6ee" stroke="#2faa5a" stroke-dasharray="4 3"/>
+    <text x="196" y="133" font-size="16" fill="#2faa5a" font-weight="700" text-anchor="middle">+</text>
+    <text x="14" y="133" font-size="13" fill="#277a44" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">hooks/pre-commit</text>
+  </g>
+</svg>

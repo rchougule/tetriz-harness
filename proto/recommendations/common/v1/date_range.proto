@@ -1,0 +1,20 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package recommendations.common.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-harness/gen/go/recommendations/common/v1;commonv1";
+
+// DateRange represents an inclusive date window with optional timezone context.
+// Used to filter aggregation windows by calendar dates.
+message DateRange {
+  // date_from is the inclusive lower bound as an ISO date, e.g. "2026-01-01".
+  string date_from = 1;
+  // date_to is the inclusive upper bound as an ISO date, e.g. "2026-01-31".
+  string date_to = 2;
+  // timezone is an IANA timezone, e.g. "America/New_York". When set, date_from/date_to
+  // are interpreted as calendar dates in this timezone; when empty, defaults to UTC.
+  string timezone = 3;
+}

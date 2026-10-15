@@ -1,0 +1,30 @@
+# Go modules linked into harnessctl-server, with their licence files under this
+# directory. Written by scripts/go-module-licenses.sh update; make licenses checks it.
+# module	version	licence (SPDX)	licence files
+std	go1.26.9	BSD-3-Clause	LICENSE PATENTS
+connectrpc.com/connect	v1.19.1	Apache-2.0	LICENSE
+github.com/cespare/xxhash/v2	v2.3.0	MIT	LICENSE.txt
+github.com/dustin/go-humanize	v1.0.1	MIT	LICENSE
+github.com/google/uuid	v1.6.0	BSD-3-Clause	LICENSE
+github.com/jackc/pgpassfile	v1.0.0	MIT	LICENSE
+github.com/jackc/pgservicefile	v0.0.0-20240606120523-5a60cdf6a761	MIT	LICENSE
+github.com/jackc/pgx/v5	v5.10.0	MIT	LICENSE
+github.com/jackc/puddle/v2	v2.2.2	MIT	LICENSE
+github.com/klauspost/compress	v1.19.2	Apache-2.0 AND BSD-3-Clause AND MIT	LICENSE s2/LICENSE
+github.com/klauspost/cpuid/v2	v2.4.0	MIT	LICENSE
+github.com/klauspost/crc32	v1.3.0	BSD-3-Clause	LICENSE
+github.com/minio/crc64nvme	v1.1.1	Apache-2.0	LICENSE
+github.com/minio/md5-simd	v1.1.2	Apache-2.0 AND BSD-3-Clause	LICENSE LICENSE.Golang
+github.com/minio/minio-go/v7	v7.3.0	Apache-2.0	LICENSE NOTICE
+github.com/philhofer/fwd	v1.2.0	MIT	LICENSE.md
+github.com/rs/xid	v1.6.0	MIT	LICENSE
+github.com/tinylib/msgp	v1.6.4	MIT	LICENSE
+github.com/zeebo/xxh3	v1.1.0	BSD-2-Clause	LICENSE
+go.yaml.in/yaml/v3	v3.0.5	Apache-2.0 AND MIT	LICENSE NOTICE
+golang.org/x/crypto	v0.55.0	BSD-3-Clause	LICENSE PATENTS
+golang.org/x/net	v0.58.0	BSD-3-Clause	LICENSE PATENTS
+golang.org/x/sync	v0.22.0	BSD-3-Clause	LICENSE PATENTS
+golang.org/x/sys	v0.47.0	BSD-3-Clause	LICENSE PATENTS
+golang.org/x/text	v0.41.0	BSD-3-Clause	LICENSE PATENTS
+google.golang.org/protobuf	v1.36.10	BSD-3-Clause	LICENSE PATENTS
+gopkg.in/ini.v1	v1.67.3	Apache-2.0	LICENSE

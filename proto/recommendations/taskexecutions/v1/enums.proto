@@ -1,0 +1,89 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package recommendations.taskexecutions.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-harness/gen/go/recommendations/taskexecutions/v1;taskexecutionsv1";
+
+// TaskType is the discriminator on task_executions.task_type — it identifies
+// which flow produced a row and therefore the shape of input_payload.
+enum TaskType {
+  TASK_TYPE_UNSPECIFIED = 0;
+  // DERIVE_ORG_ARTIFACTS is the DERIVED derivation pipeline. input_payload is a
+  // protojson-encoded recommendations.promptlibrary.v1.AggregatedContext.
+  TASK_TYPE_DERIVE_ORG_ARTIFACTS = 1;
+  // HARNESS_IMPROVE is the DETECTED detector scan. One shared discriminator for both grains:
+  // the per-repo committed-harness scan and the once-per-org relational scan. The two dedup on
+  // different keys (a repo vs the org), so a repo scan and the org scan of the same org never
+  // block each other.
+  TASK_TYPE_HARNESS_IMPROVE = 2;
+}
+
+// TaskExecutionStatus tracks the state of a single task execution.
+// Persisted in task_executions.status.
+enum TaskExecutionStatus {
+  TASK_EXECUTION_STATUS_UNSPECIFIED = 0;
+  TASK_EXECUTION_STATUS_RUNNING = 1;
+  TASK_EXECUTION_STATUS_COMPLETED = 2;
+  TASK_EXECUTION_STATUS_FAILED = 3;
+  // SKIPPED is a legitimate no-op (e.g., a below-threshold org with no security
+  // incidents) — not an error. Excluded from the failure-rate SLO; error_message
+  // stays empty.
+  TASK_EXECUTION_STATUS_SKIPPED = 4;
+  // COMPLETED_NO_VISIBLE means the run produced artifacts but the quality gate hid
+  // every one (the gate working). The prior visible set is left untouched (no
+  // supersede). Excluded from the failure-rate SLO; a rising rate is its own signal.
+  TASK_EXECUTION_STATUS_COMPLETED_NO_VISIBLE = 5;
+}
+
+// TaskTriggerType records what caused a task execution to start.
+// Persisted in task_executions.trigger_type.
+enum TaskTriggerType {
+  TASK_TRIGGER_TYPE_UNSPECIFIED = 0;
+  // SCHEDULED is a scheduled run.
+  TASK_TRIGGER_TYPE_SCHEDULED = 1;
+  // MANUAL is an operator-triggered run (e.g. a re-derive request).
+  TASK_TRIGGER_TYPE_MANUAL = 2;
+}
+
+// TaskExecutionFieldMask selects which task_executions columns a single
+// Update(model, masks) call overwrites; only masked columns are written. One
+// value per column the run lifecycle updates after creation.
+enum TaskExecutionFieldMask {
+  // UNSPECIFIED selects no column; an Update carrying only this mask is a no-op.
+  TASK_EXECUTION_FIELD_MASK_UNSPECIFIED = 0;
+  // STATUS opts the status column.
+  TASK_EXECUTION_FIELD_MASK_STATUS = 1;
+  // COMPLETED_AT opts the completed_at timestamp.
+  TASK_EXECUTION_FIELD_MASK_COMPLETED_AT = 2;
+  // INPUT_PAYLOAD opts the input_payload column (ContentRef to the run input).
+  TASK_EXECUTION_FIELD_MASK_INPUT_PAYLOAD = 3;
+  // OUTPUT_PAYLOAD opts the output_payload column (ContentRef to the raw LLM response).
+  TASK_EXECUTION_FIELD_MASK_OUTPUT_PAYLOAD = 4;
+  // ERROR_MESSAGE opts the error_message column (set only on FAILED runs).
+  TASK_EXECUTION_FIELD_MASK_ERROR_MESSAGE = 5;
+  // DEDUP_KEY opts the dedup_key single-in-flight column.
+  TASK_EXECUTION_FIELD_MASK_DEDUP_KEY = 6;
+  // SUBSTATUS opts the substatus column (the fine reason within a status, set
+  // alongside STATUS on a terminal write by task types that populate it).
+  TASK_EXECUTION_FIELD_MASK_SUBSTATUS = 7;
+}
+
+// TaskExecutionSubStatus is the fine reason within a task_executions.status — the generic
+// substatus column (nullable; unset when a terminal needs no sub-reason). One shared enum;
+// a new flow appends the reasons it needs.
+enum TaskExecutionSubStatus {
+  // UNSPECIFIED means no sub-reason (e.g. RUNNING / a plain COMPLETED).
+  TASK_EXECUTION_SUB_STATUS_UNSPECIFIED = 0;
+  // REPO_FEW_REVIEWS (SKIPPED) — the DERIVED per-repo gate: the repo had fewer in-window
+  // review comments than the configured floor, so it carries too little signal to ground
+  // artifacts and is not derived.
+  TASK_EXECUTION_SUB_STATUS_REPO_FEW_REVIEWS = 1;
+  // REPO_FEW_THEMES (COMPLETED_NO_VISIBLE) — the DERIVED enriched path: a repo below the
+  // comment floor was classified into multiple themes per comment, but the resulting
+  // theme-assignment count is still below the theme floor, so none are derived. Distinct
+  // from REPO_FEW_REVIEWS (too few comments to attempt) — here the attempt ran.
+  TASK_EXECUTION_SUB_STATUS_REPO_FEW_THEMES = 2;
+}

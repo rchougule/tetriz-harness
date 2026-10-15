@@ -1,0 +1,40 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package recommendations.harness.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-harness/gen/go/recommendations/harness/v1;harnesspb";
+
+// HarnessArtifactFileRef is one entry in a logical artifact's file manifest
+// (HarnessArtifactFileSet). An artifact is a primary file plus its manifest: a CLAUDE.md is a
+// one-entry manifest; a skill is its SKILL.md (primary) plus every script and reference.
+message HarnessArtifactFileRef {
+  // relative_path is relative to the artifact's grouping DIRECTORY — the directory that contains
+  // the primary file (a skill's SKILL.md), NOT the primary path itself. So the primary is
+  // "SKILL.md", a helper "scripts/deploy.sh".
+  string relative_path = 1;
+  // file_id is the content-store id of this file's body (deduped by content hash).
+  string file_id = 2;
+  // blob_sha is the version-control blob SHA — the change-detection baseline for this file.
+  string blob_sha = 3;
+  // is_primary marks the anchor file (a skill's SKILL.md; or the file itself for a single-file
+  // artifact).
+  bool is_primary = 4;
+  // generation is the record generation this entry was last written at — the per-file monotonicity
+  // guard.
+  int64 generation = 5;
+  // truncated is true when the body exceeded the size cap and was stored truncated.
+  bool truncated = 6;
+  // original_bytes is the untruncated size when truncated; the content hash covers the stored
+  // (possibly truncated) bytes.
+  int64 original_bytes = 7;
+}
+
+// HarnessArtifactFileSet is bound to the harness_artifacts.files JSONB column. A non-empty manifest
+// has exactly one primary (the anchor file, or the sole file of a single-file artifact).
+message HarnessArtifactFileSet {
+  // files is the full manifest — one entry per file in the artifact (the primary plus every helper).
+  repeated HarnessArtifactFileRef files = 1;
+}

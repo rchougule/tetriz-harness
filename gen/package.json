@@ -1,0 +1,24 @@
+{
+  "name": "@harness-control-plane/gen",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Generated harnessctl protobuf-es types, compiled once for every TypeScript consumer.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./harnessctl/v1/*": {
+      "types": "./dist/harnessctl/v1/*.d.ts",
+      "import": "./dist/harnessctl/v1/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.15.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "admin_token": "local-only-admin-token",
+  "persons": [
+    {"id": "dev-1", "display_name": "Dev One", "device_tokens": ["local-only-device-token"]}
+  ],
+  "teams": [
+    {"id": "platform", "name": "Platform", "members": ["dev-1"]}
+  ]
+}

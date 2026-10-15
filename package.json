@@ -1,0 +1,12 @@
+{
+  "name": "harness-control-plane",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  },
+  "packageManager": "pnpm@10.29.3"
+}

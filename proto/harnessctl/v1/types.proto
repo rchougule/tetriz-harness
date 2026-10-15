@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package harnessctl.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-harness/gen/go/harnessctl/v1;harnessctlv1";
+
+// IdeType is the AI coding tool an artifact configures. Reserved values are
+// tools no install path is derived for.
+enum IdeType {
+  IDE_TYPE_UNSPECIFIED = 0;
+  IDE_TYPE_CLAUDE_CODE = 1;
+  IDE_TYPE_CURSOR = 2;
+  reserved 3, 4;
+  IDE_TYPE_CODEX = 5;
+  IDE_TYPE_KIRO = 6;
+}
+
+// ArtifactType is the enforced primitive kind. Plugins, commands and prompt
+// templates are not enforceable and have no value here.
+enum ArtifactType {
+  ARTIFACT_TYPE_UNSPECIFIED = 0;
+  ARTIFACT_TYPE_SKILL = 1;
+  // ARTIFACT_TYPE_HOOK is a script plus a settings activation; it executes
+  // code on every targeted machine.
+  ARTIFACT_TYPE_HOOK = 2;
+  reserved 3;
+  ARTIFACT_TYPE_AGENT = 4;
+  ARTIFACT_TYPE_RULE = 5;
+  ARTIFACT_TYPE_CLAUDE_MD = 6;
+  ARTIFACT_TYPE_AGENTS_MD = 7;
+  reserved 8 to 10;
+}
+
+// ArtifactScope is where an artifact is placed on a machine.
+enum ArtifactScope {
+  ARTIFACT_SCOPE_UNSPECIFIED = 0;
+  // ARTIFACT_SCOPE_USER_GLOBAL is the tool's machine-wide config root; no
+  // repository.
+  ARTIFACT_SCOPE_USER_GLOBAL = 1;
+  // ARTIFACT_SCOPE_REPO_LOCAL is every known checkout of one repository;
+  // placed, never committed.
+  ARTIFACT_SCOPE_REPO_LOCAL = 2;
+  reserved 3;
+}
+
+// EnforcementStatus is one person's computed state for one enforced artifact
+// placement, derived at read time and never stored.
+enum EnforcementStatus {
+  ENFORCEMENT_STATUS_UNSPECIFIED = 0;
+  // ENFORCEMENT_STATUS_INSTALLED means the person's own report carries the
+  // enforced content hash at the derived path.
+  ENFORCEMENT_STATUS_INSTALLED = 1;
+  // ENFORCEMENT_STATUS_PENDING means targeted and eligible but not converged.
+  ENFORCEMENT_STATUS_PENDING = 2;
+  // ENFORCEMENT_STATUS_FAILED means not installed and the agent reported an
+  // apply failure for the currently enforced content hash.
+  ENFORCEMENT_STATUS_FAILED = 3;
+  // ENFORCEMENT_STATUS_EXCLUDED means no agent has reported for the person
+  // (or, for a repo-local placement, none knows a checkout of the repository).
+  ENFORCEMENT_STATUS_EXCLUDED = 4;
+  // ENFORCEMENT_STATUS_REMOVAL_PENDING means un-enforced, but the person's
+  // report still carries a file at the path.
+  ENFORCEMENT_STATUS_REMOVAL_PENDING = 5;
+  // ENFORCEMENT_STATUS_REMOVED means un-enforced and the file is no longer
+  // reported.
+  ENFORCEMENT_STATUS_REMOVED = 6;
+  // ENFORCEMENT_STATUS_EXPIRED means the enforcement window closed; agents
+  // leave the artifact exactly as it is and the report is not consulted.
+  ENFORCEMENT_STATUS_EXPIRED = 7;
+}
+
+// HookConfig is a hook's tool-agnostic activation. The command it runs is
+// derived by the server from (ide_type, scope, slug), so an arbitrary shell
+// string has no representation in this API.
+message HookConfig {
+  // event must be in the target tool's own hook vocabulary.
+  string event = 1;
+  // matcher narrows the subject; empty matches every subject.
+  string matcher = 2;
+  // timeout_seconds bounds the run; 0 means unset.
+  int32 timeout_seconds = 3;
+}
+
+// Audience is exactly one of org-wide, a person set, or a team set. Teams
+// resolve to members at read time, so a later joiner inherits the artifact.
+message Audience {
+  bool org_wide = 1;
+  repeated string person_ids = 2;
+  repeated string team_ids = 3;
+}
+
+// Placement is one (scope, repository) an artifact is enforced at, with the
+// audience routed there.
+message Placement {
+  ArtifactScope scope = 1;
+  // repository is the "owner/repo" of a REPO_LOCAL placement; empty for
+  // USER_GLOBAL.
+  string repository = 2;
+  Audience audience = 3;
+}

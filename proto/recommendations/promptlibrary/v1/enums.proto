@@ -1,0 +1,163 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package recommendations.promptlibrary.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-harness/gen/go/recommendations/promptlibrary/v1;promptlibraryv1";
+
+// ArtifactType indicates which kind of derived output a prompt_library row represents.
+// Persisted as the enum value-name string.
+enum ArtifactType {
+  ARTIFACT_TYPE_UNSPECIFIED = 0;
+  // CLAUDE.md-style rule (bad/good example, addresses taxonomy issues).
+  ARTIFACT_TYPE_RULE = 1;
+  // Task-type prompt starter (debug, test, feature, refactor, etc.).
+  ARTIFACT_TYPE_TEMPLATE = 2;
+  // Pre-built workflow surfaced as a slash-command-style skill.
+  ARTIFACT_TYPE_SKILL = 3;
+  // Deterministic tool-lifecycle automation (test-on-change, lint, secret-scan),
+  // delivered as a copy-paste tool-config JSON snippet the admin merges.
+  ARTIFACT_TYPE_HOOK = 4;
+  // Named specialist subagent (code-reviewer, test-writer, debugger, refactorer,
+  // domain-specialist), delivered as a per-tool agent-definition file. A subagent
+  // finding reuses this value — there is deliberately no separate SUBAGENT so the
+  // derive and detector flows never diverge on reconcile partitions / style maps.
+  ARTIFACT_TYPE_AGENT = 5;
+  // ARTIFACT_TYPE_CLAUDE_MD is a CLAUDE.md/AGENTS.md instruction file — a subject of
+  // a committed-harness detector finding (Harness-Improve Phase 2).
+  ARTIFACT_TYPE_CLAUDE_MD = 6;
+  // ARTIFACT_TYPE_MCP_SERVER is an MCP-server config entry — the subject of an
+  // MCP-sprawl / near-duplicate / production-pointed Security finding.
+  ARTIFACT_TYPE_MCP_SERVER = 7;
+  // ARTIFACT_TYPE_COMMAND is a slash-command definition — a committed-harness
+  // detector finding subject.
+  ARTIFACT_TYPE_COMMAND = 8;
+  // ARTIFACT_TYPE_PERMISSIONS is a repo's .claude/settings.json permission set — the
+  // subject of a permission-inventory Security finding.
+  ARTIFACT_TYPE_PERMISSIONS = 9;
+}
+
+// ArtifactRecommendationSource is the provenance of a prompt_library row: which of
+// the two flows produced it. Persisted as the FULL proto value-name string (e.g.
+// "ARTIFACT_RECOMMENDATION_SOURCE_DETECTED"). Named recommendation_source (not
+// source) so it never reads against HarnessArtifactSource (the origin surface, VCS
+// vs desktop) in a cross-table query.
+enum ArtifactRecommendationSource {
+  // ARTIFACT_RECOMMENDATION_SOURCE_UNSPECIFIED is the column default; a row carrying it
+  // has no explicit provenance set and is treated as not-surfaceable until a write sets one.
+  ARTIFACT_RECOMMENDATION_SOURCE_UNSPECIFIED = 0;
+  // ARTIFACT_RECOMMENDATION_SOURCE_DERIVED is the Org-Prompt-Library LLM derivation
+  // flow — net-new artifacts suggested from org signals.
+  ARTIFACT_RECOMMENDATION_SOURCE_DERIVED = 1;
+  // ARTIFACT_RECOMMENDATION_SOURCE_DETECTED is a Harness-Improve detector finding
+  // (Conflict / Security / Instruction-Intent) about an existing committed artifact.
+  ARTIFACT_RECOMMENDATION_SOURCE_DETECTED = 2;
+}
+
+// HarnessFindingDimension is the lens a DETECTED finding comes from. Persisted as the
+// full proto value-name string; UNSPECIFIED for a non-detector row.
+enum HarnessFindingDimension {
+  // HARNESS_FINDING_DIMENSION_UNSPECIFIED means no dimension applies (a non-detector
+  // row — a DERIVED recommendation).
+  HARNESS_FINDING_DIMENSION_UNSPECIFIED = 0;
+  // HARNESS_FINDING_DIMENSION_CONFLICT is the Conflict lens: broken path/glob refs,
+  // dead globs, duplicate rule-IDs, root-restatement, vendor-surface.
+  HARNESS_FINDING_DIMENSION_CONFLICT = 1;
+  // HARNESS_FINDING_DIMENSION_SECURITY is the Security lens: MCP sprawl, permission
+  // inventory, prompt-content-coverage gap.
+  HARNESS_FINDING_DIMENSION_SECURITY = 2;
+  // HARNESS_FINDING_DIMENSION_INSTRUCTION_INTENT is the Instruction-Intent lens:
+  // placement metrics and behavioral deviation vs the artifact's intent class.
+  HARNESS_FINDING_DIMENSION_INSTRUCTION_INTENT = 3;
+}
+
+// ArtifactScope indicates whether an artifact applies org-wide, to a single project, or to one
+// engineer. Persisted in prompt_library.scope. PROJECT and PERSON require a non-empty
+// scope_value; (scope, scope_value) identifies a distinct lifecycle lane.
+enum ArtifactScope {
+  ARTIFACT_SCOPE_UNSPECIFIED = 0;
+  ARTIFACT_SCOPE_ORG = 1;
+  ARTIFACT_SCOPE_PROJECT = 2;
+  // ARTIFACT_SCOPE_PERSON means the row is about one engineer's own (user-global or
+  // repo-local) harness; scope_value is that engineer's person id. Never org-canonical.
+  ARTIFACT_SCOPE_PERSON = 3;
+}
+
+// ArtifactClientStatus captures admin (client-driven) intent on an artifact.
+// Persisted in prompt_library.client_status. Orthogonal to the server-driven
+// is_latest lifecycle flag: the engine never touches client_status, and admin
+// actions never touch is_latest. Default UNSPECIFIED means no admin action taken.
+enum ArtifactClientStatus {
+  ARTIFACT_CLIENT_STATUS_UNSPECIFIED = 0;
+  // Admin pinned the artifact; it survives on the dashboard read-side even after
+  // is_latest is flipped to false by a subsequent derivation run.
+  ARTIFACT_CLIENT_STATUS_PINNED = 1;
+  // Admin dismissed the artifact with a reason; hidden from the primary view.
+  ARTIFACT_CLIENT_STATUS_DISMISSED = 2;
+  // Admin applied a DETECTED finding's suggested fix (enforced it via the Harness
+  // Control Plane); the finding is resolved. Terminal, like DISMISSED. Stamped
+  // alongside admin_interaction.fixed_at.
+  ARTIFACT_CLIENT_STATUS_FIXED = 3;
+}
+
+// ArtifactSurfaceState is the quality-gate outcome on an artifact, owned by the
+// derivation engine. Persisted in prompt_library.surface_state. Orthogonal to
+// is_latest (server lifecycle) and client_status (admin intent): the gate stamps
+// this once at derivation time and never again.
+enum ArtifactSurfaceState {
+  // UNSPECIFIED is the column default and means the engine did not stamp a grade;
+  // the dashboard list query treats it as not-visible, so an ungraded row fails
+  // safe (hidden) rather than leaking an unvetted artifact.
+  ARTIFACT_SURFACE_STATE_UNSPECIFIED = 0;
+  // VISIBLE means the artifact passed every blocking validator and the LLM-as-judge;
+  // it is eligible to surface on the dashboard.
+  ARTIFACT_SURFACE_STATE_VISIBLE = 1;
+  // HIDDEN_FAILED_EVAL means the artifact failed a blocking validator or the judge;
+  // it is persisted (for dedup, audit, and PM inspection) but never surfaced.
+  ARTIFACT_SURFACE_STATE_HIDDEN_FAILED_EVAL = 2;
+}
+
+// ArtifactTargetPlacement says HOW a derived rule/skill applies to its target
+// rules file, so the dashboard renders the exact copy instruction. Lives inside the
+// content-store RuleContent/SkillContent, never a DB column.
+enum ArtifactTargetPlacement {
+  // UNSPECIFIED means the derivation resolved no placement; readers treat it as
+  // APPEND_TO_FILE — the safe, tool-agnostic default.
+  ARTIFACT_TARGET_PLACEMENT_UNSPECIFIED = 0;
+  // APPEND_TO_FILE means paste the body into target_file, an existing rules file
+  // (e.g. CLAUDE.md / AGENTS.md); reference_in_file is empty.
+  ARTIFACT_TARGET_PLACEMENT_APPEND_TO_FILE = 1;
+  // NEW_REFERENCED_FILE means create target_file as a new standalone file and add
+  // an import/link line to reference_in_file (e.g. a new .cursor/rules/<slug>.mdc,
+  // or .claude/rules/<slug>.md imported from CLAUDE.md).
+  ARTIFACT_TARGET_PLACEMENT_NEW_REFERENCED_FILE = 2;
+  // COPY_MERGE means copy the self-contained body (a JSON snippet that already carries the
+  // file's own top-level wrapper, e.g. the "hooks" key of .claude/settings.json) and merge
+  // its top-level keys into target_file at the root — never nest it under another key, and
+  // never append (appending a snippet would corrupt the JSON settings file). Used for hooks;
+  // reference_in_file is empty for this placement.
+  ARTIFACT_TARGET_PLACEMENT_COPY_MERGE = 3;
+}
+
+// RepoShape classifies what KIND of work a repository holds, decided from its file tree
+// rather than inferred by a model from paths. Domain-fit is matched on it: an artifact
+// built for application development does not fit a repository that only carries
+// deployment config.
+enum RepoShape {
+  // UNSPECIFIED means no shape was decided — no family was dominant enough, or the tree
+  // was empty. It means "unknown", never a default kind: a consumer falls back to the
+  // other repo-fit signals rather than treating the repo as any particular shape.
+  REPO_SHAPE_UNSPECIFIED = 0;
+  // APPLICATION means source code in a general-purpose language dominates.
+  REPO_SHAPE_APPLICATION = 1;
+  // INFRASTRUCTURE means deployment and provisioning config dominates — Terraform,
+  // Kubernetes manifests, Helm charts, CI pipeline definitions.
+  REPO_SHAPE_INFRASTRUCTURE = 2;
+  // DOCUMENTATION means prose dominates (Markdown, reStructuredText).
+  REPO_SHAPE_DOCUMENTATION = 3;
+  // MIXED means two families are each substantial, so no single kind describes the
+  // repo — a monorepo carrying both an application and its deployment config.
+  REPO_SHAPE_MIXED = 4;
+}

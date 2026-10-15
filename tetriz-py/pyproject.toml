@@ -1,0 +1,82 @@
+[project]
+name = "tetriz-py"
+version = "0.1.0"
+description = "LLM service for the Tetriz Harness recommendations engine"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0,<1.0",
+    "uvicorn[standard]>=0.34.0,<1.0",
+    "pydantic>=2.10.0,<3.0",
+    "pydantic-settings>=2.7.0,<3.0",
+    # structlog is capped below 25.0: the logging pipeline in app/config/logging.py has not
+    # been validated against its API changes. Raise the cap once that is confirmed.
+    "structlog>=24.0.0,<25.0",
+    "google-genai>=2.5.0,<3.0",
+    "prometheus-client>=0.20.0,<1.0",
+]
+
+[project.optional-dependencies]
+# The SBERT review-theme classifier's runtime. The base service installs and runs every
+# endpoint without it; /classify-themes on the SBERT strategy returns 503 until it is present
+# (`uv sync --extra ml`). The Gemini strategy needs none of this.
+ml = [
+    "sentence-transformers>=3.0.0,<6.0",
+    # torch is listed explicitly so the [tool.uv.sources] CPU override applies — uv's source
+    # overrides require a direct project dependency to hook.
+    "torch>=2.2.0,<3.0",
+]
+
+[dependency-groups]
+# Dev tooling as a uv dependency-group so `uv sync` includes it by default. The base service
+# install ships neither pytest nor ruff.
+dev = [
+    "pytest>=9.0.3,<10.0",
+    "pytest-asyncio>=0.24.0,<2.0",
+    "httpx>=0.28.0,<1.0",
+    "ruff==0.16.10",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+# ─── torch CPU-only pin (Linux/Docker only) ──────────────────────────────────
+# sentence-transformers pulls torch, which on Linux defaults to the CUDA wheel (~800 MB plus
+# the nvidia-* runtime chain). This service runs CPU-only inference, so on Linux torch is
+# routed through PyTorch's CPU index. On macOS the default wheel is already CPU-only.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency-injection idiom puts Depends(...) in an argument default on purpose.
+extend-immutable-calls = ["fastapi.Depends"]
+
+[tool.ruff.lint.per-file-ignores]
+# Prompt modules are long verbatim strings; the line-length rule does not apply to them.
+"app/llm/prompts/*.py" = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    # An eval that calls a real LLM provider (needs a key). Excluded from the default offline
+    # run so the suite stays green without a key; run it with `-m provider_eval`.
+    "provider_eval: an eval that calls an LLM provider; needs credentials, run it explicitly",
+]
+addopts = "-m 'not provider_eval'"

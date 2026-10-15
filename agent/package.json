@@ -1,0 +1,47 @@
+{
+  "name": "@harness-control-plane/agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Headless agent that converges enforced AI harness artifacts (instructions, skills, rules, hooks) onto a developer machine.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "harness-agent": "./dist/cli/main.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node scripts/build-fs-helper.mjs && tsc -p tsconfig.build.json && node scripts/chmod-bin.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "node scripts/build-fs-helper.mjs && tsc -p tsconfig.test.json && node scripts/run-tests.mjs",
+    "clean": "node -e \"for (const d of ['dist','.test-build']) require('node:fs').rmSync(d,{recursive:true,force:true})\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^20.19.0",
+    "eslint": "^10.11.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.71.0"
+  },
+  "packageManager": "pnpm@10.29.3",
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.15.0",
+    "@connectrpc/connect": "^2.2.0",
+    "@connectrpc/connect-node": "^2.2.0",
+    "@harness-control-plane/gen": "workspace:*"
+  }
+}

@@ -1,0 +1,26 @@
+.git
+.claude
+bin
+dist
+data
+node_modules
+**/node_modules
+# The image builds its own UI; a host build here would shadow it.
+web/dist/*
+!web/dist/.gitkeep
+web/dist-mock
+web/screenshots
+agent/dist
+agent/.test-build
+gen/dist
+**/coverage*
+**/*.test
+**/*.out
+
+# Keep local environment secrets out of every build stage and cache.
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example

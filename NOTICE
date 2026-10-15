@@ -1,0 +1,56 @@
+tetriz-harness
+Copyright 2026 Workloom Solutions Private Limited
+
+Licensed under the MIT License; see the LICENSE file.
+
+------------------------------------------------------------------------------
+Third-party components
+------------------------------------------------------------------------------
+
+The harnessctl-server binary compiles in the Go standard library and the
+third-party Go modules it imports, so every build of that binary, including the
+one in the container image the Dockerfile builds, redistributes them in compiled
+form. third_party/licenses/go/modules.tsv lists each linked module with its
+version and SPDX licence expression, and third_party/licenses/go/<module path>/
+carries the licence, NOTICE and PATENTS files that module ships; the standard
+library's are in third_party/licenses/go/std/. Every one is under a permissive
+licence: Apache-2.0, BSD-2-Clause, BSD-3-Clause or MIT. The image installs them
+under /usr/share/licenses/tetriz-harness/third_party/go/.
+
+go.mod declares further Go modules, used by the libraries, tools and tests in
+this repository. The Go toolchain fetches each one under its own licence; this
+repository does not vendor their source.
+
+Generated Protobuf Go bindings under gen/ are produced by protoc-gen-go
+(google.golang.org/protobuf, BSD-3-Clause) from the .proto sources under proto/.
+
+The bundled tetriz-py service depends on third-party Python packages declared in
+tetriz-py/pyproject.toml, not vendored, each under its own license. The tetriz-py image
+installs its runtime packages; tetriz-py/THIRD_PARTY_LICENSES.md lists each one with its
+version and licence, and the image carries that file under /usr/share/licenses/tetriz-py/.
+
+The admin UI is compiled into the harnessctl-server binary (web/embed.go embeds
+web/dist), so every build of that binary redistributes the following packages in
+minified form. Each licence text is in third_party/licenses/<package>/.
+
+- React, React DOM and scheduler 19.3.0 / 0.28.0, MIT,
+  https://github.com/facebook/react.
+- @tanstack/react-query and @tanstack/query-core 5.104.0, MIT,
+  https://github.com/TanStack/query.
+- react-router 7.18.4, MIT, https://github.com/remix-run/react-router, with
+  cookie 1.1.1, MIT, https://github.com/jshttp/cookie, and set-cookie-parser
+  2.7.2, MIT, https://github.com/nfriedly/set-cookie-parser.
+- @connectrpc/connect and @connectrpc/connect-web 2.2.0, Apache-2.0,
+  https://github.com/connectrpc/connect-es.
+- @bufbuild/protobuf 2.15.0, Apache-2.0 AND BSD-3-Clause,
+  https://github.com/bufbuild/protobuf-es. Its varint encoding is derived from
+  the Protocol Buffers project, Copyright 2008 Google Inc., under BSD-3-Clause;
+  both licence texts are in third_party/licenses/@bufbuild-protobuf/LICENSE.
+
+The Node agent (agent/) declares its own runtime dependencies in
+agent/package.json and does not vendor or bundle them; a consumer's package
+manager fetches each one under its own licence.
+
+CODE_OF_CONDUCT.md is adapted from the Contributor Covenant, version 2.1,
+https://www.contributor-covenant.org/version/2/1/code_of_conduct/,
+licensed under CC BY 4.0, https://creativecommons.org/licenses/by/4.0/.

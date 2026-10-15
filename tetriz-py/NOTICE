@@ -1,0 +1,19 @@
+tetriz-py, the LLM service of tetriz-harness
+Copyright 2026 Workloom Solutions Private Limited
+
+Licensed under the MIT License; see the LICENSE file. LICENSE in this directory
+is a byte-for-byte copy of the repository's root LICENSE, kept here so the
+tetriz-py image, which builds from this directory, carries it.
+
+------------------------------------------------------------------------------
+Third-party components
+------------------------------------------------------------------------------
+
+The tetriz-py image installs the third-party Python packages that uv.lock pins
+for the service's runtime, each under its own licence. THIRD_PARTY_LICENSES.md
+lists every one with its version and SPDX licence, and each installed package
+carries its own licence text in its .dist-info directory inside the image's
+/app/.venv. The image's base layer (python:3.11-slim) carries the licences of
+CPython and the Debian packages it contains under /usr/share/doc.
+
+No third-party source is vendored in this directory.

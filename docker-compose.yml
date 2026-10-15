@@ -1,0 +1,118 @@
+# Local evaluation stack. Every credential below is a LOCAL-ONLY default:
+# do not expose this stack beyond localhost without replacing them. People,
+# teams, the admin token and device tokens come from
+# cmd/harnessctl-server/directory.local.json (admin token
+# local-only-admin-token; person dev-1 with device token
+# local-only-device-token).
+#
+#   docker compose up --build --wait                 # postgres + server, fs blobs
+#   HARNESS_ALLOW_HOOKS=true HARNESS_PORT=18080 ...  # accept hooks, publish another port
+#   docker compose --profile s3 up --build --wait    # adds MinIO; see server-s3
+name: harness-control-plane
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: harness
+      POSTGRES_PASSWORD: local-only-password
+      POSTGRES_DB: harness
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U harness -d harness"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  server:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      HARNESS_DATABASE_URL: postgres://harness:local-only-password@postgres:5432/harness?sslmode=disable
+      HARNESS_DIRECTORY_FILE: /etc/harness/directory.json
+      HARNESS_BLOB_BACKEND: fs
+      HARNESS_BLOB_DIR: /data/blobs
+      HARNESS_ALLOW_HOOKS: ${HARNESS_ALLOW_HOOKS:-false}
+    ports:
+      - "127.0.0.1:${HARNESS_PORT:-8080}:8080"
+    volumes:
+      - blobs:/data/blobs
+      - ./cmd/harnessctl-server/directory.local.json:/etc/harness/directory.json:ro
+    healthcheck:
+      # distroless has no shell or curl, so the probe is the server binary's
+      # own health subcommand.
+      test: ["CMD", "/usr/local/bin/harnessctl-server", "healthcheck"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    profiles: ["s3"]
+    # The upstream minio/minio images are no longer publicly pullable; this is
+    # a maintained build of the same server.
+    image: cgr.dev/chainguard/minio:latest
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: local-only-minio
+      MINIO_ROOT_PASSWORD: local-only-minio-password
+    ports:
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  server-s3:
+    profiles: ["s3"]
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      HARNESS_DATABASE_URL: postgres://harness:local-only-password@postgres:5432/harness?sslmode=disable
+      HARNESS_DIRECTORY_FILE: /etc/harness/directory.json
+      HARNESS_BLOB_BACKEND: s3
+      HARNESS_S3_ENDPOINT: minio:9000
+      HARNESS_S3_BUCKET: harness-blobs
+      HARNESS_S3_REGION: us-east-1
+      HARNESS_S3_ACCESS_KEY: local-only-minio
+      HARNESS_S3_SECRET_KEY: local-only-minio-password
+      HARNESS_S3_USE_SSL: "false"
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - ./cmd/harnessctl-server/directory.local.json:/etc/harness/directory.json:ro
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/harnessctl-server", "healthcheck"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # The LLM service for the recommendations engine. Opt-in (profile "llm") so it never changes
+  # the default `up`. It is unauthenticated and holds the operator's Gemini key once set, so the
+  # host port is bound to loopback only; the image runs as a non-root user. The key is passed
+  # through from the host environment and is never stored in this file or the image.
+  tetriz-py:
+    profiles: ["llm"]
+    build: ./tetriz-py
+    environment:
+      TETRIZ_ENVIRONMENT: ${TETRIZ_ENVIRONMENT:-development}
+      TETRIZ_GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      # The container listens on all interfaces so the published port can reach it; the
+      # localhost-only guard is the loopback host-port binding below.
+      TETRIZ_HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:${TETRIZ_PORT:-8000}:8000"
+
+volumes:
+  pgdata:
+  blobs:
+  miniodata:

@@ -1,0 +1,7 @@
+packages:
+  - agent
+  - gen
+  - web
+
+onlyBuiltDependencies:
+  - esbuild

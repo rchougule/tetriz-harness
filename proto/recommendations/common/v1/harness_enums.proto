@@ -1,0 +1,93 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package recommendations.common.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-harness/gen/go/recommendations/common/v1;commonv1";
+
+// Shared enums describing an observed harness artifact. Harness-prefixed because common/v1 is
+// shared and bare names would be ambiguous here. The AI tool dimension reuses the shared IdeType
+// (ide_type.proto), not a new enum. Enum values are persisted as the full value-name string.
+
+// HarnessFileStatus is the upload lifecycle of a content-addressed file body.
+enum HarnessFileStatus {
+  // HARNESS_FILE_STATUS_UNSPECIFIED means the status was not populated. Treat as a programming error.
+  HARNESS_FILE_STATUS_UNSPECIFIED = 0;
+  // HARNESS_FILE_STATUS_PENDING means the content hash is reserved but its body has not been
+  // verified in storage yet (upload in flight, crashed, or abandoned).
+  HARNESS_FILE_STATUS_PENDING = 1;
+  // HARNESS_FILE_STATUS_CONFIRMED means the body is verified present and hash-matched; the content
+  // is safe to share across engineers.
+  HARNESS_FILE_STATUS_CONFIRMED = 2;
+  // HARNESS_FILE_STATUS_DELETING is a durable reclaim claim: an unreferenced CONFIRMED body parked
+  // for deletion. A DELETING row is excluded from the live-body read, so a re-created same-hash body
+  // lands on a fresh row while this row's body is deleted. A crash leaves it DELETING for a retry.
+  HARNESS_FILE_STATUS_DELETING = 3;
+}
+
+// HarnessArtifactScope is where/how an artifact is placed, capturing provenance: REPO_COMMITTED is
+// tracked by the repository, the other two are developer-added.
+enum HarnessArtifactScope {
+  // HARNESS_ARTIFACT_SCOPE_UNSPECIFIED means the scope was not populated. Treat as a programming error.
+  HARNESS_ARTIFACT_SCOPE_UNSPECIFIED = 0;
+  // HARNESS_ARTIFACT_SCOPE_USER_GLOBAL is personal machine-wide config — no repository attached.
+  HARNESS_ARTIFACT_SCOPE_USER_GLOBAL = 1;
+  // HARNESS_ARTIFACT_SCOPE_REPO_LOCAL is a file inside a repository checkout that is not committed —
+  // personal, no deviation baseline.
+  HARNESS_ARTIFACT_SCOPE_REPO_LOCAL = 2;
+  // HARNESS_ARTIFACT_SCOPE_REPO_COMMITTED is a file committed to the repository — the org-canonical
+  // copy the detectors evaluate.
+  HARNESS_ARTIFACT_SCOPE_REPO_COMMITTED = 3;
+}
+
+// HarnessArtifactType classifies the captured config primitive, normalized across AI tools; the tool
+// itself is carried by IdeType. A genuinely new primitive gets its own value here (no catch-all).
+enum HarnessArtifactType {
+  // HARNESS_ARTIFACT_TYPE_UNSPECIFIED means the type was not populated. Treat as a programming error.
+  HARNESS_ARTIFACT_TYPE_UNSPECIFIED = 0;
+  // HARNESS_ARTIFACT_TYPE_SKILL is a skill definition.
+  HARNESS_ARTIFACT_TYPE_SKILL = 1;
+  // HARNESS_ARTIFACT_TYPE_HOOK is a lifecycle hook.
+  HARNESS_ARTIFACT_TYPE_HOOK = 2;
+  // HARNESS_ARTIFACT_TYPE_AGENT is a custom agent / subagent definition.
+  HARNESS_ARTIFACT_TYPE_AGENT = 3;
+  // HARNESS_ARTIFACT_TYPE_RULE is a rules file (e.g. .claude/rules or .cursor/rules — IdeType says
+  // which tool).
+  HARNESS_ARTIFACT_TYPE_RULE = 4;
+  // HARNESS_ARTIFACT_TYPE_CLAUDE_MD is the Claude Code instruction file (CLAUDE.md).
+  HARNESS_ARTIFACT_TYPE_CLAUDE_MD = 5;
+  // HARNESS_ARTIFACT_TYPE_AGENTS_MD is the AGENTS.md instruction file (Codex and compatible tools).
+  HARNESS_ARTIFACT_TYPE_AGENTS_MD = 6;
+  // HARNESS_ARTIFACT_TYPE_COMMAND is a slash-command definition.
+  HARNESS_ARTIFACT_TYPE_COMMAND = 7;
+  // HARNESS_ARTIFACT_TYPE_PERMISSIONS is a repo's permission set parsed from a settings file — the
+  // committed-harness type the permission-inventory detector reads. One PERMISSIONS artifact per repo.
+  HARNESS_ARTIFACT_TYPE_PERMISSIONS = 8;
+}
+
+// HarnessOperationalState is how the primitive is activated on the engineer's machine.
+enum HarnessOperationalState {
+  // HARNESS_OPERATIONAL_STATE_UNSPECIFIED means the state was not populated. Treat as a programming error.
+  HARNESS_OPERATIONAL_STATE_UNSPECIFIED = 0;
+  // HARNESS_OPERATIONAL_STATE_ENABLED means the primitive is active.
+  HARNESS_OPERATIONAL_STATE_ENABLED = 1;
+  // HARNESS_OPERATIONAL_STATE_DISABLED means the primitive is present but switched off.
+  HARNESS_OPERATIONAL_STATE_DISABLED = 2;
+}
+
+// HarnessArtifactSource is the grain of an observed harness artifact — a per-engineer reading from a
+// local machine, or the org-canonical copy committed to a repository. It discriminates the two
+// populations that share the observed-artifact inventory: a VCS artifact is org/repo-grain and
+// person-less, a desktop artifact belongs to one engineer.
+enum HarnessArtifactSource {
+  // HARNESS_ARTIFACT_SOURCE_UNSPECIFIED is never a stored value; the proto3 zero guards against an
+  // un-set discriminator reading as a real source.
+  HARNESS_ARTIFACT_SOURCE_UNSPECIFIED = 0;
+  // HARNESS_ARTIFACT_SOURCE_DESKTOP is read from an engineer's local machine (per-engineer).
+  HARNESS_ARTIFACT_SOURCE_DESKTOP = 1;
+  // HARNESS_ARTIFACT_SOURCE_VCS is the committed copy pulled from a tracked repository's default
+  // branch (org grain).
+  HARNESS_ARTIFACT_SOURCE_VCS = 2;
+}

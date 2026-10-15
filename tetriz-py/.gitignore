@@ -1,0 +1,15 @@
+# Python / uv build + test artifacts — never committed.
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+dist/
+*.egg-info/
+
+# Secrets never belong in the repo; the Gemini key arrives via env at run time only.
+.env
+.env.*
+
+# Local-only prompt branding regression guard.
+/tests/test_local_brand_vocabulary.py

@@ -1,0 +1,321 @@
+syntax = "proto3";
+
+package harnessctl.v1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "harnessctl/v1/types.proto";
+
+option go_package = "github.com/tetriz-ai/tetriz-harness/gen/go/harnessctl/v1;harnessctlv1";
+
+// AdminService is the admin surface: artifact definitions, their targets, the
+// computed status, a read of the people and teams targets resolve against,
+// and the org-wide kill switch. Agents call none of it. People, teams and
+// credentials belong to the host that embeds the server; it authenticates
+// every call before it reaches this service.
+service AdminService {
+  // UpsertArtifact creates (no artifact_id) or updates a definition. A create
+  // whose (ide_type, type, slug) matches a live definition updates it instead.
+  // Every save restarts the enforcement window.
+  rpc UpsertArtifact(UpsertArtifactRequest) returns (UpsertArtifactResponse);
+  // ListArtifacts returns every live definition with its placements and
+  // status counts, then, on request, the retracted ones newest first.
+  rpc ListArtifacts(ListArtifactsRequest) returns (ListArtifactsResponse);
+  // GetArtifact returns one definition, live or retracted, with its stored
+  // bodies in the shape UpsertArtifact accepts, whatever its placements.
+  rpc GetArtifact(GetArtifactRequest) returns (GetArtifactResponse);
+  // RemoveArtifact stops enforcing a definition. Agents delete each file they
+  // placed for it that still holds what they wrote, and remove a hook's
+  // settings entry; a file changed locally since is left in place and
+  // reported with a reason, so status reads REMOVAL_PENDING until it is gone.
+  rpc RemoveArtifact(RemoveArtifactRequest) returns (RemoveArtifactResponse);
+  // SetTargets replaces the audience of one (scope, repository) placement of
+  // a definition; other placements are untouched. An empty audience removes
+  // the placement. Restarts the enforcement window, but never ends it
+  // earlier than an enforce_until the last save chose.
+  rpc SetTargets(SetTargetsRequest) returns (SetTargetsResponse);
+  // GetEnforcementStatus computes one definition's status per targeted person
+  // per placement.
+  rpc GetEnforcementStatus(GetEnforcementStatusRequest) returns (GetEnforcementStatusResponse);
+  // ListEligibleEngineers returns every person with whether enforcement can
+  // reach them, for the target picker.
+  rpc ListEligibleEngineers(ListEligibleEngineersRequest) returns (ListEligibleEngineersResponse);
+  // GetArtifactFiles returns a definition's files at their repo-relative
+  // paths with bodies, for committing it by hand. Refused for a definition
+  // with no REPO_LOCAL placement.
+  rpc GetArtifactFiles(GetArtifactFilesRequest) returns (GetArtifactFilesResponse);
+  // GetInstallPreview derives the install path(s) of an artifact that need
+  // not exist yet, at one scope.
+  rpc GetInstallPreview(GetInstallPreviewRequest) returns (GetInstallPreviewResponse);
+
+  // ListPersons returns every person in the host's directory.
+  rpc ListPersons(ListPersonsRequest) returns (ListPersonsResponse);
+  // ListTeams returns every team in the host's directory with its members.
+  rpc ListTeams(ListTeamsRequest) returns (ListTeamsResponse);
+
+  // PauseEnforcement is the kill switch: agents are told to make no writes
+  // until ResumeEnforcement. Paused is not removal; nothing is retracted.
+  rpc PauseEnforcement(PauseEnforcementRequest) returns (PauseEnforcementResponse);
+  rpc ResumeEnforcement(ResumeEnforcementRequest) returns (ResumeEnforcementResponse);
+
+  // GetSettings reports the server-wide state and limits an admin client
+  // needs. It is the cheapest admin read, so a client proves its credentials
+  // with it.
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+}
+
+// ArtifactFile is one authored file of a directory artifact.
+message ArtifactFile {
+  // relative_path is artifact-relative ("SKILL.md", "scripts/run.sh"): never
+  // absolute, no "." or ".." segment, no dash-led segment.
+  string relative_path = 1;
+  string content = 2;
+}
+
+message UpsertArtifactRequest {
+  // artifact_id addresses an existing definition; changing its slug renames
+  // it. ide_type and type cannot change on update.
+  string artifact_id = 1;
+  IdeType ide_type = 2;
+  ArtifactType type = 3;
+  // slug derives the install path and must match ^[a-z0-9][a-z0-9-]*$
+  // (1-100 chars). The display name never derives a path.
+  string slug = 4;
+  string name = 5;
+  // inline_content is a single-file body (for a HOOK, the script). Exactly
+  // one of inline_content or files carries content on a create; an update may
+  // omit both to keep the stored body.
+  string inline_content = 6;
+  // files is a SKILL's file set; exactly one entry must be the primary
+  // SKILL.md. Rejected for every other type.
+  repeated ArtifactFile files = 7;
+  // hook_config is required for a HOOK and rejected otherwise.
+  HookConfig hook_config = 8;
+  // enforce_until, when set, closes the window this save stamps instead of
+  // now plus the server's default window. It must be in the future and at
+  // most GetSettings.max_enforcement_window ahead.
+  google.protobuf.Timestamp enforce_until = 9;
+}
+
+message UpsertArtifactResponse {
+  string artifact_id = 1;
+  // enforce_until is the close of the window this save stamped.
+  google.protobuf.Timestamp enforce_until = 2;
+}
+
+message ListArtifactsRequest {
+  // include_retracted adds retracted definitions, whose status tracks removal.
+  bool include_retracted = 1;
+}
+
+message ArtifactSummary {
+  string artifact_id = 1;
+  IdeType ide_type = 2;
+  ArtifactType type = 3;
+  string slug = 4;
+  string name = 5;
+  // primary_hash is the sha256 hex of the primary file's body.
+  string primary_hash = 6;
+  HookConfig hook_config = 7;
+  // placements has one entry per distinct (scope, repository), ordered
+  // USER_GLOBAL first then by repository. For a retracted definition they
+  // are the placements its retraction removed.
+  repeated Placement placements = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  // enforce_until is the close of the enforcement window; in the past means
+  // expired.
+  google.protobuf.Timestamp enforce_until = 10;
+  // status_counts tallies what GetEnforcementStatus would return for it.
+  StatusCounts status_counts = 11;
+  // retracted_at is set once RemoveArtifact retracted the definition.
+  google.protobuf.Timestamp retracted_at = 12;
+}
+
+// StatusCounts is the number of (person, placement) rows in each status.
+message StatusCounts {
+  int32 installed = 1;
+  int32 pending = 2;
+  int32 failed = 3;
+  int32 excluded = 4;
+  int32 removal_pending = 5;
+  int32 removed = 6;
+  int32 expired = 7;
+}
+
+message ListArtifactsResponse {
+  repeated ArtifactSummary artifacts = 1;
+  // enforcement_paused reports the kill switch.
+  bool enforcement_paused = 2;
+}
+
+message GetArtifactRequest {
+  string artifact_id = 1;
+}
+
+message GetArtifactResponse {
+  ArtifactSummary artifact = 1;
+  // inline_content is the primary file's body (a SKILL's SKILL.md, a HOOK's
+  // script).
+  string inline_content = 2;
+  // files is a SKILL's whole file set, primary first then by relative_path;
+  // empty for every other type.
+  repeated ArtifactFile files = 3;
+}
+
+message RemoveArtifactRequest {
+  string artifact_id = 1;
+}
+
+message RemoveArtifactResponse {}
+
+message SetTargetsRequest {
+  string artifact_id = 1;
+  ArtifactScope scope = 2;
+  // repository is the "owner/repo" of a REPO_LOCAL placement; required for
+  // REPO_LOCAL and rejected for USER_GLOBAL. Matched case-insensitively and
+  // stored lowercase, as is every repository an agent reports.
+  string repository = 3;
+  Audience audience = 4;
+}
+
+message SetTargetsResponse {
+  // install_path is where the primary file lands, relative to the scope root.
+  string install_path = 1;
+  google.protobuf.Timestamp enforce_until = 2;
+}
+
+message GetEnforcementStatusRequest {
+  string artifact_id = 1;
+}
+
+message PersonEnforcementStatus {
+  string person_id = 1;
+  // scope and repository name the placement this status is judged against;
+  // a person targeted at two placements appears once per placement.
+  ArtifactScope scope = 2;
+  string repository = 3;
+  EnforcementStatus status = 4;
+  // detail is the exclusion or failure reason, or why a removal is still
+  // pending; empty otherwise.
+  string detail = 5;
+  // observed_at is the report that grounds an INSTALLED, or the failure
+  // report behind a FAILED.
+  google.protobuf.Timestamp observed_at = 6;
+}
+
+message GetEnforcementStatusResponse {
+  repeated PersonEnforcementStatus statuses = 1;
+}
+
+message ListEligibleEngineersRequest {
+  // repository, when set, additionally requires a known checkout of it.
+  string repository = 1;
+}
+
+message EligibleEngineer {
+  string person_id = 1;
+  string display_name = 2;
+  bool eligible = 3;
+  string ineligible_reason = 4;
+}
+
+message ListEligibleEngineersResponse {
+  repeated EligibleEngineer engineers = 1;
+}
+
+message GetArtifactFilesRequest {
+  string artifact_id = 1;
+}
+
+message ArtifactFileContent {
+  // relative_path is repo-relative: the REPO_LOCAL derivation for the tool.
+  string relative_path = 1;
+  string content = 2;
+  // is_primary marks the file status is validated on.
+  bool is_primary = 3;
+}
+
+message GetArtifactFilesResponse {
+  // files is primary first, then by relative_path.
+  repeated ArtifactFileContent files = 1;
+  // repositories is every REPO_LOCAL placement's "owner/repo"; never empty.
+  repeated string repositories = 2;
+}
+
+message GetInstallPreviewRequest {
+  IdeType ide_type = 1;
+  ArtifactType type = 2;
+  string slug = 3;
+  // file_relative_paths are a SKILL's artifact-relative file names to expand;
+  // empty derives the single primary path.
+  repeated string file_relative_paths = 4;
+  // scope picks the placement the paths are derived for; unspecified means
+  // REPO_LOCAL.
+  ArtifactScope scope = 5;
+}
+
+message InstallPreviewFile {
+  string relative_path = 1;
+  bool is_primary = 2;
+}
+
+message GetInstallPreviewResponse {
+  // files is in request order, or the single primary when none were given;
+  // each path is relative to root.
+  repeated InstallPreviewFile files = 1;
+  // root names the directory the paths are relative to, for display: "~",
+  // "~/.codex" (a user-scope Codex hook) or "<checkout>".
+  string root = 2;
+}
+
+message Person {
+  reserved 3;
+  reserved "created_at";
+
+  string person_id = 1;
+  string display_name = 2;
+}
+
+message ListPersonsRequest {}
+
+message ListPersonsResponse {
+  repeated Person persons = 1;
+}
+
+message Team {
+  string team_id = 1;
+  string name = 2;
+  repeated string member_person_ids = 3;
+}
+
+message ListTeamsRequest {}
+
+message ListTeamsResponse {
+  repeated Team teams = 1;
+}
+
+message PauseEnforcementRequest {}
+
+message PauseEnforcementResponse {
+  bool paused = 1;
+}
+
+message ResumeEnforcementRequest {}
+
+message ResumeEnforcementResponse {
+  bool paused = 1;
+}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  // enforcement_paused reports the kill switch.
+  bool enforcement_paused = 1;
+  // hooks_enabled reports whether this server admits HOOK artifacts.
+  bool hooks_enabled = 2;
+  string server_version = 3;
+  // enforcement_window is how long a save enforces without enforce_until.
+  google.protobuf.Duration enforcement_window = 4;
+  // max_enforcement_window bounds how far ahead enforce_until may be.
+  google.protobuf.Duration max_enforcement_window = 5;
+}

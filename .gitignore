@@ -1,0 +1,27 @@
+# Build output
+/bin/
+/dist/
+# Default blob store of a locally run harnessctl-server (HARNESS_BLOB_DIR).
+/data/
+*.test
+*.out
+coverage.*
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+
+# JS tooling
+node_modules/
+
+# Compiled TypeScript of the generated protobuf-es package
+/gen/dist/
+
+# Blob store of examples/go-library-host when it runs from the repository root
+/blobs/
+
+# Local environment files may contain credentials.
+.env
+.env.*
+!.env.example
