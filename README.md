@@ -11,6 +11,8 @@ A harness is the set of rules, skills, agents, commands, hooks and MCP config th
 [![Node](https://img.shields.io/badge/node-%E2%89%A5%2022-339933?logo=node.js)](agent/package.json)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
+<a href="https://www.producthunt.com/products/tetriz-harness?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-tetriz-harness" target="_blank" rel="noopener noreferrer"><img alt="Tetriz Harness - Turn what your team learns into everyone’s agent setup | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1281396&amp;theme=light&amp;t=1792082193173"></a>
+
 <img alt="The recommendations scan finds six problems in a sample repository's harness and reports which detector families ran" src="recommendations/.github/assets/demo.gif" width="1000">
 
 The [recommendations quick start](recommendations/README.md#quick-start) has the commands and a text version of the scan's output.
