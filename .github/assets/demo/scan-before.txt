@@ -1,0 +1,24 @@
+scanned ./recommendations/ondisk/testdata/sample-repo: 9 harness artifacts over 11 files; 6 DETECTED finding(s)
+  - [HARNESS_FINDING_DIMENSION_SECURITY] Permissions default mode bypasses all prompts (priority 30) [live]
+    78cb844a-f2b6-5764-ab2b-cbad4f087431:security:permission-default-mode:541f4573c196
+  - [HARNESS_FINDING_DIMENSION_CONFLICT] Rule pattern matches no files in the repo (priority 20) [live]
+    78cb844a-f2b6-5764-ab2b-cbad4f087431:conflict:dead-glob:4ef86877583b
+  - [HARNESS_FINDING_DIMENSION_SECURITY] Over-broad permission grant (priority 20) [live]
+    78cb844a-f2b6-5764-ab2b-cbad4f087431:security:permission-grant:10dbc11ad97c
+  - [HARNESS_FINDING_DIMENSION_SECURITY] Over-broad permission grant (priority 20) [live]
+    78cb844a-f2b6-5764-ab2b-cbad4f087431:security:permission-grant:426df3fa0040
+  - [HARNESS_FINDING_DIMENSION_CONFLICT] Rule ID defined in more than one file (priority 10) [live]
+    78cb844a-f2b6-5764-ab2b-cbad4f087431:conflict:dup-id:e083c5c3b48f
+  - [HARNESS_FINDING_DIMENSION_INSTRUCTION_INTENT] Lines are denser than most files in this repo (priority 5) [live]
+    78cb844a-f2b6-5764-ab2b-cbad4f087431:instruction-intent:tok-per-line:463cfcc579c2
+
+detector coverage:
+  ran (config-only, over the committed harness on disk):
+    - Conflict (dup-id, dead-glob, broken-path, root-restatement)
+    - Instruction-Intent (placement and density over committed instruction files)
+    - Security permission inventory (grants and default-mode in a settings.json)
+  skipped (need session/usage/org data a repository walk does not provide):
+    - Behavioral deviation: needs per-skill usage behavior (session data) and LLM intent classification
+    - Personal / never-used: needs per-person usage and primary-repo ownership
+    - Org MCP sprawl: needs org-wide MCP usage (the org-relational scan, not wired on disk)
+    - Org coverage-gap: needs org-wide signals (the org-relational scan, not wired on disk)

@@ -6,6 +6,11 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Changed
+
+- The README leads with a narrated scan-to-rollout demo: identify a broken rule pattern,
+  verify a reviewed fix, publish it to a selected team and inspect delivery status.
+
 ## [0.1.0] - 2026-10-15
 
 ### Added
